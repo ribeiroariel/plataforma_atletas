@@ -16,8 +16,11 @@ create table if not exists public.profiles (
   user_id    uuid not null unique references auth.users (id) on delete cascade,
   nome       text not null,
   papel      text not null check (papel in ('athlete', 'coach')),
+  avatar_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists avatar_url text;
 
 -- athletes: entidade "atleta" usada como FK em todo o resto do schema.
 -- 1 atleta = 1 usuário logado (user_id), mas mantido como tabela própria
@@ -27,8 +30,11 @@ create table if not exists public.athletes (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null unique references auth.users (id) on delete cascade,
   nome       text not null,
+  avatar_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.athletes add column if not exists avatar_url text;
 
 -- coach_athletes: vínculo treinador <-> atleta. Gerenciado manualmente pelo
 -- Ariel (via SQL Editor/service role) — não há policy de INSERT/UPDATE/DELETE
@@ -53,6 +59,12 @@ create table if not exists public.training_plans (
   -- nome_arquivo deve ser só o nome do arquivo, nunca um path com ../ etc.
   constraint nome_arquivo_sem_path check (nome_arquivo !~ '[\\/]' )
 );
+
+-- modo_treino: formato detectado pelo parser (semana = grade semanal de
+-- academia, blocos = sessão de pista, generico = nenhum dos dois) — usado
+-- só para escolher o ícone certo na lista de treinos.
+alter table public.training_plans
+  add column if not exists modo_treino text check (modo_treino in ('semana', 'blocos', 'generico'));
 
 -- Permite reimportar o mesmo arquivo (mesmo atleta + mesmo nome) sem duplicar
 -- linha — o script de import (Etapa 4) faz upsert nessa chave.
@@ -130,6 +142,22 @@ create table if not exists public.observations (
   constraint texto_tamanho_maximo check (char_length(texto) <= 2000)
 );
 
+-- training_completions: marca que uma sessão específica (um dia da grade
+-- semanal ou um bloco de pista) de um plano foi concluída pelo atleta.
+-- session_key é a chave estável gerada pelo parser (ex.: 's0-d1', 'b3').
+create table if not exists public.training_completions (
+  id                uuid primary key default gen_random_uuid(),
+  training_plan_id  uuid not null references public.training_plans (id) on delete cascade,
+  athlete_id        uuid not null references public.athletes (id) on delete cascade,
+  session_key       text not null,
+  completed_at      timestamptz not null default now(),
+  unique (training_plan_id, session_key),
+  constraint session_key_tamanho check (char_length(session_key) <= 60)
+);
+
+create index if not exists training_completions_plan_idx
+  on public.training_completions (training_plan_id);
+
 -- -----------------------------------------------------------------------------
 -- 2. TRIGGER: cria profile (+ athletes, se for atleta) no cadastro
 -- -----------------------------------------------------------------------------
@@ -177,6 +205,7 @@ alter table public.coach_athletes enable row level security;
 alter table public.training_plans enable row level security;
 alter table public.training_data  enable row level security;
 alter table public.observations   enable row level security;
+alter table public.training_completions enable row level security;
 
 -- Trava adicional: mesmo que alguém rode "ALTER TABLE ... DISABLE ROW LEVEL
 -- SECURITY" por engano depois, FORCE garante que o dono da tabela também
@@ -187,6 +216,7 @@ alter table public.coach_athletes force row level security;
 alter table public.training_plans force row level security;
 alter table public.training_data  force row level security;
 alter table public.observations   force row level security;
+alter table public.training_completions force row level security;
 
 -- -----------------------------------------------------------------------------
 -- 4. POLICIES
@@ -214,7 +244,7 @@ create policy profiles_update_own
 -- Restringe quais colunas o client pode de fato alterar num UPDATE, mesmo
 -- que a policy acima permita a linha inteira: papel fica de fora.
 revoke update on public.profiles from authenticated;
-grant update (nome) on public.profiles to authenticated;
+grant update (nome, avatar_url) on public.profiles to authenticated;
 
 -- athletes: o próprio atleta vê/edita seu registro. O treinador só LÊ os
 -- atletas vinculados a ele (nunca escreve).
@@ -379,6 +409,56 @@ create policy observations_update_athlete_own
 -- Sem policy de DELETE para observations por padrão (atleta não apaga
 -- histórico). Confirmar se isso é o desejado — ver "Suposições".
 
+-- training_completions: atleta marca/desmarca (insert + delete) as próprias
+-- sessões; treinador só LÊ as dos atletas vinculados.
+drop policy if exists training_completions_select_athlete_own on public.training_completions;
+create policy training_completions_select_athlete_own
+  on public.training_completions for select
+  to authenticated
+  using (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists training_completions_select_coach_linked on public.training_completions;
+create policy training_completions_select_coach_linked
+  on public.training_completions for select
+  to authenticated
+  using (
+    athlete_id in (
+      select ca.athlete_id
+      from public.coach_athletes ca
+      where ca.coach_id = auth.uid()
+    )
+  );
+
+drop policy if exists training_completions_insert_athlete_own on public.training_completions;
+create policy training_completions_insert_athlete_own
+  on public.training_completions for insert
+  to authenticated
+  with check (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+    -- a conclusão tem que ser de um plano que é realmente do próprio atleta
+    and training_plan_id in (
+      select tp.id from public.training_plans tp
+      join public.athletes a on a.id = tp.athlete_id
+      where a.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists training_completions_delete_athlete_own on public.training_completions;
+create policy training_completions_delete_athlete_own
+  on public.training_completions for delete
+  to authenticated
+  using (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+  );
+
 -- -----------------------------------------------------------------------------
 -- 5. STORAGE (planilhas .xlsx)
 -- -----------------------------------------------------------------------------
@@ -426,6 +506,53 @@ create policy storage_training_plans_select_coach_linked
 
 -- Sem policy de INSERT/UPDATE/DELETE em storage.objects para
 -- authenticated/anon: só o script de import (service_role) escreve.
+
+-- -----------------------------------------------------------------------------
+-- 6. STORAGE (fotos de perfil)
+-- -----------------------------------------------------------------------------
+-- Bucket público (foto de perfil não é dado sensível). Convenção de path
+-- OBRIGATÓRIA: avatars/{auth.uid()}/foto.<ext> — cada usuário só grava
+-- dentro da própria pasta (nome da pasta = o próprio auth.uid(), não um
+-- valor que o cliente escolhe livremente).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'avatars',
+  'avatars',
+  true,
+  2097152, -- 2 MB
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 2097152,
+  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+
+drop policy if exists storage_avatars_write_own on storage.objects;
+create policy storage_avatars_write_own
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists storage_avatars_update_own on storage.objects;
+create policy storage_avatars_update_own
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists storage_avatars_delete_own on storage.objects;
+create policy storage_avatars_delete_own
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 -- =============================================================================
 -- FIM. Ver mensagem de acompanhamento para: suposições assumidas, testes de

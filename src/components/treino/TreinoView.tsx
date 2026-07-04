@@ -1,8 +1,19 @@
 import type { TreinoParseado } from "@/lib/planilha/parseTreino";
 import { BlocosTextoView } from "./BlocosTextoView";
 import { DiaAccordion } from "./DiaAccordion";
+import { BotaoConcluido } from "./BotaoConcluido";
 
-export function TreinoView({ treino }: { treino: TreinoParseado }) {
+export function TreinoView({
+  treino,
+  trainingPlanId,
+  concluidas,
+}: {
+  treino: TreinoParseado;
+  trainingPlanId: string;
+  concluidas: string[];
+}) {
+  const feito = (chave: string) => concluidas.includes(chave);
+
   if (treino.tipo === "semana") {
     return (
       <div className="flex flex-col gap-6">
@@ -13,7 +24,12 @@ export function TreinoView({ treino }: { treino: TreinoParseado }) {
             </h2>
             <div className="flex flex-col gap-2">
               {semana.dias.map((dia, j) => (
-                <DiaAccordion key={j} dia={dia} />
+                <DiaAccordion
+                  key={j}
+                  dia={dia}
+                  trainingPlanId={trainingPlanId}
+                  concluido={feito(dia.chave)}
+                />
               ))}
             </div>
           </section>
@@ -32,14 +48,26 @@ export function TreinoView({ treino }: { treino: TreinoParseado }) {
       <div className="flex flex-col gap-4">
         {treino.objetivo && <p className="text-sm text-track-fog">{treino.objetivo}</p>}
         {treino.sessao.map((bloco, i) => (
-          <div key={i} className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
-            <div className="mb-2 flex items-baseline gap-2">
-              <span className="tabular-data text-xs font-semibold text-stadium-blue">
-                BLOCO {bloco.numero}
-              </span>
-              <h3 className="font-display text-base font-semibold text-track-night">
-                {bloco.titulo}
-              </h3>
+          <div
+            key={i}
+            className={`rounded-[var(--radius-badge)] border bg-white p-4 ${
+              feito(bloco.chave) ? "border-stadium-blue/40" : "border-track-fog/25"
+            }`}
+          >
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2">
+                <span className="tabular-data text-xs font-semibold text-stadium-blue">
+                  BLOCO {bloco.numero}
+                </span>
+                <h3 className="font-display text-base font-semibold text-track-night">
+                  {bloco.titulo}
+                </h3>
+              </div>
+              <BotaoConcluido
+                trainingPlanId={trainingPlanId}
+                sessionKey={bloco.chave}
+                concluidoInicial={feito(bloco.chave)}
+              />
             </div>
             <BlocosTextoView blocos={bloco.blocos} />
             {bloco.parametros && (

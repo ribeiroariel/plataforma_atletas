@@ -44,6 +44,13 @@ export default async function TreinoPage({
     .eq("training_plan_id", plano.id)
     .order("data", { ascending: false });
 
+  const { data: conclusoes } = await supabase
+    .from("training_completions")
+    .select("session_key")
+    .eq("training_plan_id", plano.id);
+
+  const concluidas = (conclusoes ?? []).map((c) => c.session_key);
+
   const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
 
   return (
@@ -68,7 +75,7 @@ export default async function TreinoPage({
       </div>
 
       {treino ? (
-        <TreinoView treino={treino} />
+        <TreinoView treino={treino} trainingPlanId={plano.id} concluidas={concluidas} />
       ) : (
         <p className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white px-4 py-6 text-sm text-track-fog">
           Não foi possível carregar o conteúdo desse treino agora.

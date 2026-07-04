@@ -11,6 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import XLSX from "xlsx";
 import { createClient } from "@supabase/supabase-js";
+import { parseTreino } from "../src/lib/planilha/parseTreino.ts";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -219,6 +220,7 @@ async function importarArquivo(nomeArquivo) {
 
   const buffer = fs.readFileSync(caminhoCompleto);
   const caminhoStorage = `${atleta.id}/${nomeArquivo}`;
+  const modoTreino = parseTreino(buffer).tipo;
 
   const { error: uploadErro } = await admin.storage
     .from("training-plans")
@@ -239,6 +241,7 @@ async function importarArquivo(nomeArquivo) {
         athlete_id: atleta.id,
         arquivo_url: caminhoStorage,
         nome_arquivo: nomeArquivo,
+        modo_treino: modoTreino,
       },
       { onConflict: "athlete_id,nome_arquivo" },
     );

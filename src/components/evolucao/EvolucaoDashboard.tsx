@@ -9,8 +9,21 @@ import {
   type Periodo,
 } from "@/lib/evolucao/agregarSemana";
 import { METRICAS } from "@/lib/evolucao/metricas";
+import {
+  IconeAcademia,
+  IconeBicicleta,
+  IconeCardio,
+  IconeCorrida,
+} from "@/components/icons/IconesTreino";
 import { CartaoResumo } from "./CartaoResumo";
 import { GraficoSemanal } from "./GraficoSemanal";
+
+const ICONE_POR_METRICA = {
+  academia: IconeAcademia,
+  corrida: IconeCorrida,
+  bicicleta: IconeBicicleta,
+  cardio: IconeCardio,
+} as const;
 
 const OPCOES_PERIODO: { valor: Periodo; rotulo: string }[] = [
   { valor: "semana", rotulo: "Semana" },
@@ -59,13 +72,20 @@ export function EvolucaoDashboard({ dados }: { dados: LinhaTrainingData[] }) {
             unidade={m.unidade}
             resumo={m.resumo}
             serie={m.serie}
+            Icone={ICONE_POR_METRICA[m.chave]}
           />
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {porMetrica.map((m) => (
-          <GraficoSemanal key={m.chave} titulo={m.titulo} unidade={m.unidade} serie={m.serie} />
+          <GraficoSemanal
+            key={m.chave}
+            titulo={m.titulo}
+            unidade={m.unidade}
+            serie={m.serie}
+            Icone={ICONE_POR_METRICA[m.chave]}
+          />
         ))}
       </div>
     </div>

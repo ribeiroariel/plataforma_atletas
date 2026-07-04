@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType } from "react";
 import {
   Area,
   AreaChart,
@@ -43,16 +44,21 @@ export function GraficoSemanal({
   titulo,
   unidade,
   serie,
+  Icone,
 }: {
   titulo: string;
   unidade: string;
   serie: PontoSemana[];
+  Icone?: ComponentType<{ className?: string }>;
 }) {
   const semDados = serie.length === 0;
 
   return (
     <div className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
-      <h3 className="mb-2 font-display text-base font-semibold text-track-night">{titulo}</h3>
+      <h3 className="mb-2 flex items-center gap-1.5 font-display text-base font-semibold text-track-night">
+        {Icone && <Icone className="h-4 w-4 shrink-0" />}
+        {titulo}
+      </h3>
       {semDados ? (
         <p className="flex h-48 items-center justify-center text-sm text-track-fog">
           Nenhum dado registrado ainda para {titulo.toLowerCase()}.

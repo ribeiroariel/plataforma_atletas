@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
+import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
+import { FotoPerfil } from "@/components/perfil/FotoPerfil";
+
+const ICONE_POR_MODO = {
+  semana: IconeAcademia,
+  blocos: IconePista,
+  generico: IconeAcademia,
+} as const;
 
 function formatarData(iso: string) {
   const [ano, mes, dia] = iso.split("-");
@@ -23,13 +31,13 @@ export default async function AtletaPage() {
 
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("id, nome")
+    .select("id, nome, avatar_url")
     .eq("user_id", user?.id)
     .single();
 
   const { data: planos } = await supabase
     .from("training_plans")
-    .select("id, nome_arquivo, arquivo_url, data_criacao")
+    .select("id, nome_arquivo, arquivo_url, data_criacao, modo_treino")
     .eq("athlete_id", athlete?.id ?? "")
     .order("data_criacao", { ascending: false });
 
@@ -45,11 +53,14 @@ export default async function AtletaPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-6 py-10">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-track-night">
-            Olá, {athlete?.nome ?? "atleta"}
-          </h1>
-          <p className="text-sm text-track-fog">Seus treinos</p>
+        <div className="flex items-center gap-3">
+          <FotoPerfil nome={athlete?.nome ?? "Atleta"} avatarUrl={athlete?.avatar_url ?? null} />
+          <div>
+            <h1 className="font-display text-2xl font-bold text-track-night">
+              Olá, {athlete?.nome ?? "atleta"}
+            </h1>
+            <p className="text-sm text-track-fog">Seus treinos</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -77,6 +88,8 @@ export default async function AtletaPage() {
         <div className="flex flex-col gap-3">
           {planosComLink.map((plano) => {
             const { dia, mes } = formatarData(plano.data_criacao);
+            const Icone =
+              ICONE_POR_MODO[plano.modo_treino as keyof typeof ICONE_POR_MODO] ?? IconeAcademia;
             return (
               <div
                 key={plano.id}
@@ -86,6 +99,7 @@ export default async function AtletaPage() {
                   <span className="font-display text-xl font-bold">{dia}</span>
                   <span className="text-[10px] tracking-wide text-track-fog">{mes}</span>
                 </div>
+                <Icone className="h-5 w-5 shrink-0 text-stadium-blue" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-track-night">
                     {tituloLegivel(plano.nome_arquivo)}

@@ -2,6 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
+import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
+
+const ICONE_POR_MODO = {
+  semana: IconeAcademia,
+  blocos: IconePista,
+  generico: IconeAcademia,
+} as const;
 
 export default async function AtletaDoTreinadorPage({
   params,
@@ -28,7 +35,7 @@ export default async function AtletaDoTreinadorPage({
 
   const { data: planos } = await supabase
     .from("training_plans")
-    .select("id, nome_arquivo, data_criacao")
+    .select("id, nome_arquivo, data_criacao, modo_treino")
     .eq("athlete_id", atleta.id)
     .order("data_criacao", { ascending: false });
 
@@ -38,11 +45,24 @@ export default async function AtletaDoTreinadorPage({
     .eq("athlete_id", atleta.id)
     .order("data", { ascending: false });
 
+  const { data: conclusoes } = await supabase
+    .from("training_completions")
+    .select("training_plan_id")
+    .eq("athlete_id", atleta.id);
+
   const observacoesPorPlano = new Map<string, typeof observacoes>();
   (observacoes ?? []).forEach((obs) => {
     const lista = observacoesPorPlano.get(obs.training_plan_id) ?? [];
     lista.push(obs);
     observacoesPorPlano.set(obs.training_plan_id, lista);
+  });
+
+  const conclusoesPorPlano = new Map<string, number>();
+  (conclusoes ?? []).forEach((c) => {
+    conclusoesPorPlano.set(
+      c.training_plan_id,
+      (conclusoesPorPlano.get(c.training_plan_id) ?? 0) + 1,
+    );
   });
 
   return (
@@ -63,11 +83,22 @@ export default async function AtletaDoTreinadorPage({
           <div className="flex flex-col gap-4">
             {planos.map((plano) => {
               const obsDoPlano = observacoesPorPlano.get(plano.id) ?? [];
+              const totalConcluidas = conclusoesPorPlano.get(plano.id) ?? 0;
+              const Icone =
+                ICONE_POR_MODO[plano.modo_treino as keyof typeof ICONE_POR_MODO] ?? IconeAcademia;
               return (
                 <div key={plano.id} className="border-t border-white/10 pt-3 first:border-0 first:pt-0">
-                  <p className="text-sm font-medium text-white">
-                    {plano.nome_arquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ")}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-white">
+                      <Icone className="h-4 w-4 shrink-0 text-sky-split" />
+                      {plano.nome_arquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ")}
+                    </p>
+                    {totalConcluidas > 0 && (
+                      <span className="tabular-data shrink-0 rounded-[var(--radius-badge)] bg-stadium-blue/20 px-2 py-0.5 text-xs font-medium text-sky-split">
+                        {totalConcluidas} concluída{totalConcluidas > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
                   {obsDoPlano.length > 0 ? (
                     <ul className="mt-1 flex flex-col gap-1">
                       {obsDoPlano.map((obs) => (

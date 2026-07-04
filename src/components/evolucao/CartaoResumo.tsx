@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { Line, LineChart, ResponsiveContainer } from "recharts";
 import type { PontoSemana, Resumo } from "@/lib/evolucao/agregarSemana";
 
@@ -12,11 +13,13 @@ export function CartaoResumo({
   unidade,
   resumo,
   serie,
+  Icone,
 }: {
   titulo: string;
   unidade: string;
   resumo: Resumo;
   serie: PontoSemana[];
+  Icone: ComponentType<{ className?: string }>;
 }) {
   const semDadoAnterior = resumo.variacaoPercentual === null;
   const positivo = (resumo.variacaoPercentual ?? 0) > 0;
@@ -33,7 +36,10 @@ export function CartaoResumo({
 
   return (
     <div className="flex flex-col gap-1 rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
-      <span className="text-xs text-track-fog">{titulo}</span>
+      <div className="flex items-center gap-1.5 text-track-night">
+        <Icone className="h-4 w-4 shrink-0" />
+        <span className="text-xs text-track-fog">{titulo}</span>
+      </div>
       <div className="flex items-end justify-between gap-3">
         <div className="flex items-baseline gap-1">
           <span className="font-display text-3xl font-bold text-track-night">

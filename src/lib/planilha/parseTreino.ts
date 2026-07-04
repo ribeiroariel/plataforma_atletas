@@ -17,7 +17,7 @@ export type BlocoTexto =
   | { tipo: "item-lista"; texto: string }
   | { tipo: "total"; texto: string };
 
-export type DiaSemana = { dia: string; blocos: BlocoTexto[]; descanso: boolean };
+export type DiaSemana = { chave: string; dia: string; blocos: BlocoTexto[]; descanso: boolean };
 export type SemanaTreino = { rotulo: string; dias: DiaSemana[] };
 export type ModoSemana = {
   tipo: "semana";
@@ -26,7 +26,13 @@ export type ModoSemana = {
   legenda?: string;
 };
 
-export type BlocoSessao = { numero: string; titulo: string; blocos: BlocoTexto[]; parametros: string };
+export type BlocoSessao = {
+  chave: string;
+  numero: string;
+  titulo: string;
+  blocos: BlocoTexto[];
+  parametros: string;
+};
 export type ModoBlocos = {
   tipo: "blocos";
   titulo: string;
@@ -107,6 +113,7 @@ function parseGradeDeSemana(linhas: string[][]): ModoSemana {
   const cabecalho = linhas[1] ?? [];
   const semanas: SemanaTreino[] = [];
   let legenda: string | undefined;
+  let indiceSemana = 0;
 
   for (let i = 2; i < linhas.length; i++) {
     const linha = linhas[i];
@@ -122,12 +129,14 @@ function parseGradeDeSemana(linhas: string[][]): ModoSemana {
       const conteudo = String(linha[col] ?? "").trim();
       const descanso = /^descanso$/i.test(conteudo);
       dias.push({
+        chave: `s${indiceSemana}-d${col}`,
         dia: String(cabecalho[col] ?? ""),
         blocos: descanso ? [] : parseCelula(conteudo),
         descanso,
       });
     }
     semanas.push({ rotulo, dias });
+    indiceSemana++;
   }
 
   return { tipo: "semana", titulo, semanas, legenda };
@@ -147,6 +156,7 @@ function parseTabelaDeBlocos(linhas: string[][], indiceCabecalho: number): ModoB
     const primeiraLinha = String(descricao ?? "").split("\n")[0]?.trim() ?? "";
 
     sessao.push({
+      chave: `b${String(numero).trim()}`,
       numero: String(numero ?? ""),
       titulo: tituloColuna || primeiraLinha,
       blocos: blocosTexto,
