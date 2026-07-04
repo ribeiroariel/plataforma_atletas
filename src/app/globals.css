@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --color-track-night: #0a1930;
+  --color-deep-lane: #123a5c;
+  --color-stadium-blue: #1c6dd0;
+  --color-sky-split: #6ec1e4;
+  --color-lane-chalk: #f4f7fa;
+  --color-track-fog: #90a4b8;
+  --color-split-ember: #e4572e;
+
+  --background: var(--color-lane-chalk);
+  --foreground: var(--color-track-night);
+}
+
+@theme inline {
+  --color-track-night: var(--color-track-night);
+  --color-deep-lane: var(--color-deep-lane);
+  --color-stadium-blue: var(--color-stadium-blue);
+  --color-sky-split: var(--color-sky-split);
+  --color-lane-chalk: var(--color-lane-chalk);
+  --color-track-fog: var(--color-track-fog);
+  --color-split-ember: var(--color-split-ember);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --radius-badge: 6px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.tabular-data {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

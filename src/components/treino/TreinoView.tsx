@@ -1,0 +1,73 @@
+import type { TreinoParseado } from "@/lib/planilha/parseTreino";
+import { BlocosTextoView } from "./BlocosTextoView";
+import { DiaAccordion } from "./DiaAccordion";
+
+export function TreinoView({ treino }: { treino: TreinoParseado }) {
+  if (treino.tipo === "semana") {
+    return (
+      <div className="flex flex-col gap-6">
+        {treino.semanas.map((semana, i) => (
+          <section key={i} className="flex flex-col gap-2">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-deep-lane">
+              {semana.rotulo.replace(/\n/g, " · ")}
+            </h2>
+            <div className="flex flex-col gap-2">
+              {semana.dias.map((dia, j) => (
+                <DiaAccordion key={j} dia={dia} />
+              ))}
+            </div>
+          </section>
+        ))}
+        {treino.legenda && (
+          <p className="rounded-[var(--radius-badge)] bg-deep-lane/5 px-4 py-3 text-xs text-track-fog">
+            {treino.legenda}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (treino.tipo === "blocos") {
+    return (
+      <div className="flex flex-col gap-4">
+        {treino.objetivo && <p className="text-sm text-track-fog">{treino.objetivo}</p>}
+        {treino.sessao.map((bloco, i) => (
+          <div key={i} className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
+            <div className="mb-2 flex items-baseline gap-2">
+              <span className="tabular-data text-xs font-semibold text-stadium-blue">
+                BLOCO {bloco.numero}
+              </span>
+              <h3 className="font-display text-base font-semibold text-track-night">
+                {bloco.titulo}
+              </h3>
+            </div>
+            <BlocosTextoView blocos={bloco.blocos} />
+            {bloco.parametros && (
+              <p className="tabular-data mt-3 border-t border-track-fog/15 pt-2 text-xs text-track-fog whitespace-pre-line">
+                {bloco.parametros}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-[var(--radius-badge)] border border-track-fog/25 bg-white">
+      <table className="w-full text-left text-sm">
+        <tbody>
+          {treino.linhas.map((linha, i) => (
+            <tr key={i} className="border-b border-track-fog/15 last:border-0">
+              {linha.map((celula, j) => (
+                <td key={j} className="px-3 py-2 align-top text-track-night/90">
+                  {celula}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
