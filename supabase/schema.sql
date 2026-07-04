@@ -158,21 +158,6 @@ create table if not exists public.training_completions (
 create index if not exists training_completions_plan_idx
   on public.training_completions (training_plan_id);
 
--- strava_connections: vínculo OAuth de um atleta com o Strava. Guarda os
--- tokens (só usados no servidor). O escopo pedido é apenas leitura de
--- atividades (activity:read), então mesmo que o dono veja o próprio token
--- via RLS, o risco é baixo — e nenhum outro usuário alcança a linha.
-create table if not exists public.strava_connections (
-  athlete_id        uuid primary key references public.athletes (id) on delete cascade,
-  strava_athlete_id bigint not null,
-  access_token      text not null,
-  refresh_token     text not null,
-  expires_at        timestamptz not null,
-  scope             text,
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
-);
-
 -- -----------------------------------------------------------------------------
 -- 2. TRIGGER: cria profile (+ athletes, se for atleta) no cadastro
 -- -----------------------------------------------------------------------------
@@ -221,7 +206,6 @@ alter table public.training_plans enable row level security;
 alter table public.training_data  enable row level security;
 alter table public.observations   enable row level security;
 alter table public.training_completions enable row level security;
-alter table public.strava_connections   enable row level security;
 
 -- Trava adicional: mesmo que alguém rode "ALTER TABLE ... DISABLE ROW LEVEL
 -- SECURITY" por engano depois, FORCE garante que o dono da tabela também
@@ -233,7 +217,6 @@ alter table public.training_plans force row level security;
 alter table public.training_data  force row level security;
 alter table public.observations   force row level security;
 alter table public.training_completions force row level security;
-alter table public.strava_connections   force row level security;
 
 -- -----------------------------------------------------------------------------
 -- 4. POLICIES
@@ -500,24 +483,6 @@ create policy training_completions_delete_athlete_own
   on public.training_completions for delete
   to authenticated
   using (
-    athlete_id in (
-      select a.id from public.athletes a where a.user_id = auth.uid()
-    )
-  );
-
--- strava_connections: só o próprio atleta lê/grava/apaga a própria conexão.
--- O treinador NÃO acessa os tokens — ele já enxerga os dados sincronizados
--- via as policies de training_data.
-drop policy if exists strava_connections_all_own on public.strava_connections;
-create policy strava_connections_all_own
-  on public.strava_connections for all
-  to authenticated
-  using (
-    athlete_id in (
-      select a.id from public.athletes a where a.user_id = auth.uid()
-    )
-  )
-  with check (
     athlete_id in (
       select a.id from public.athletes a where a.user_id = auth.uid()
     )

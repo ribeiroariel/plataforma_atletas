@@ -39,9 +39,15 @@ export default async function LoginPage({
 
           <CampoSenha name="senha" label="Senha" autoComplete="current-password" />
 
+          <div className="flex justify-end">
+            <Link href="/recuperar-senha" className="text-xs text-stadium-blue hover:underline">
+              Esqueci minha senha
+            </Link>
+          </div>
+
           <button
             type="submit"
-            className="mt-2 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane"
+            className="mt-1 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane"
           >
             Entrar
           </button>

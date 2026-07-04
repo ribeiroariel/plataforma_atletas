@@ -1,23 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
-import { CartaoStrava } from "@/components/evolucao/CartaoStrava";
 import { RegistroTreinoForm } from "@/components/evolucao/RegistroTreinoForm";
-import { stravaConfigurado } from "@/lib/strava/config";
 
-const MENSAGENS_STRAVA: Record<string, string> = {
-  conectado: "Strava conectado e sincronizado.",
-  negado: "Você não autorizou o acesso ao Strava.",
-  erro: "Algo deu errado ao conectar o Strava. Tente de novo.",
-  indisponivel: "Integração com o Strava ainda não configurada.",
-};
-
-export default async function EvolucaoPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ strava?: string }>;
-}) {
-  const { strava } = await searchParams;
+export default async function EvolucaoPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -34,16 +20,6 @@ export default async function EvolucaoPage({
     .select("data, tipo, variavel, valor")
     .eq("athlete_id", athlete?.id ?? "");
 
-  const conexaoStrava = stravaConfigurado()
-    ? (
-        await supabase
-          .from("strava_connections")
-          .select("athlete_id")
-          .eq("athlete_id", athlete?.id ?? "")
-          .maybeSingle()
-      ).data
-    : null;
-
   return (
     <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-6 py-10">
       <div>
@@ -56,14 +32,6 @@ export default async function EvolucaoPage({
       </div>
 
       <RegistroTreinoForm />
-
-      {stravaConfigurado() && (
-        <CartaoStrava
-          conectado={Boolean(conexaoStrava)}
-          disponivel
-          ultimaMensagem={strava ? MENSAGENS_STRAVA[strava] : undefined}
-        />
-      )}
 
       <EvolucaoDashboard dados={dados ?? []} />
     </div>
