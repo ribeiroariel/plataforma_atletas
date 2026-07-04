@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cadastrar } from "@/lib/actions/auth";
+import { CadastroForm } from "@/components/auth/CadastroForm";
 
 export default async function CadastroPage({
   searchParams,
@@ -24,62 +24,7 @@ export default async function CadastroPage({
           </p>
         )}
 
-        <form action={cadastrar} className="mt-6 flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm text-track-night">
-            Nome
-            <input
-              type="text"
-              name="nome"
-              required
-              autoComplete="name"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm text-track-night">
-            E-mail
-            <input
-              type="email"
-              name="email"
-              required
-              autoComplete="email"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm text-track-night">
-            Senha
-            <input
-              type="password"
-              name="senha"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
-            />
-          </label>
-
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm text-track-night">Eu sou</legend>
-            <div className="flex gap-3">
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-sm text-track-night has-[:checked]:border-stadium-blue has-[:checked]:bg-stadium-blue/5">
-                <input type="radio" name="papel" value="athlete" defaultChecked required />
-                Atleta
-              </label>
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-sm text-track-night has-[:checked]:border-stadium-blue has-[:checked]:bg-stadium-blue/5">
-                <input type="radio" name="papel" value="coach" required />
-                Treinador
-              </label>
-            </div>
-          </fieldset>
-
-          <button
-            type="submit"
-            className="mt-2 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane"
-          >
-            Criar conta
-          </button>
-        </form>
+        <CadastroForm />
 
         <p className="mt-6 text-sm text-track-fog">
           Já tem conta?{" "}

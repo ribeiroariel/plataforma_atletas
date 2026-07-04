@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { login } from "@/lib/actions/auth";
+import { CampoSenha } from "@/components/auth/CampoSenha";
 
 export default async function LoginPage({
   searchParams,
@@ -36,16 +37,7 @@ export default async function LoginPage({
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm text-track-night">
-            Senha
-            <input
-              type="password"
-              name="senha"
-              required
-              autoComplete="current-password"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
-            />
-          </label>
+          <CampoSenha name="senha" label="Senha" autoComplete="current-password" />
 
           <button
             type="submit"

@@ -25,6 +25,7 @@ export async function login(formData: FormData) {
 export async function cadastrar(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const senha = String(formData.get("senha") ?? "");
+  const confirmarSenha = String(formData.get("confirmar_senha") ?? "");
   const nome = String(formData.get("nome") ?? "").trim();
   const papelForm = String(formData.get("papel") ?? "");
 
@@ -33,6 +34,9 @@ export async function cadastrar(formData: FormData) {
   }
   if (!nome) {
     redirect(`/cadastro?erro=${encodeURIComponent("Informe seu nome.")}`);
+  }
+  if (senha !== confirmarSenha) {
+    redirect(`/cadastro?erro=${encodeURIComponent("As senhas não coincidem.")}`);
   }
 
   const papel = papelForm as Papel;
