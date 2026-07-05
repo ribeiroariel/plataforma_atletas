@@ -42,10 +42,21 @@ export async function cadastrar(formData: FormData) {
   const papel = papelForm as Papel;
   const supabase = await createClient();
 
+  // Mesmo padrão do fluxo de recuperação: o link de confirmação precisa
+  // apontar para /auth/confirmar (que troca o código por sessão) no domínio
+  // de onde o cadastro foi feito — sem isso o Supabase cai na Site URL padrão
+  // e o clique no e-mail não estabelece a sessão.
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  const origin = h.get("origin") ?? `https://${h.get("host") ?? ""}`;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password: senha,
-    options: { data: { nome, papel } },
+    options: {
+      data: { nome, papel },
+      emailRedirectTo: `${origin}/auth/confirmar?next=${encodeURIComponent(rotaPapel(papel))}`,
+    },
   });
 
   if (error) {
