@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { IconeComparar, IconeFeed, IconePessoas } from "@/components/layout/iconesNav";
+import { IconeComparar, IconeFeed, IconeFeedback, IconePessoas } from "@/components/layout/iconesNav";
 
 export default async function TreinadorLayout({
   children,
@@ -22,6 +22,7 @@ export default async function TreinadorLayout({
     { href: "/treinador", label: "Meus atletas", icon: IconePessoas, exato: true },
     { href: "/treinador/comparar", label: "Comparar", icon: IconeComparar },
     { href: "/feed", label: "Feed", icon: IconeFeed },
+    { href: "/feedback", label: "Feedback", icon: IconeFeedback },
   ];
 
   return (

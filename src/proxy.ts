@@ -37,7 +37,8 @@ export async function proxy(request: NextRequest) {
   const rotaProtegida =
     path.startsWith("/atleta") ||
     path.startsWith("/treinador") ||
-    path.startsWith("/feed");
+    path.startsWith("/feed") ||
+    path.startsWith("/feedback");
 
   if (!user) {
     if (rotaProtegida) {

@@ -88,9 +88,17 @@ export default async function FeedPage() {
       <PostComposer />
 
       {feed.length === 0 ? (
-        <p className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white px-4 py-8 text-center text-sm text-track-fog">
-          Ainda não há publicações. Seja o primeiro a compartilhar um treino.
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-[var(--radius-badge)] border border-dashed border-track-fog/40 bg-white px-4 py-10 text-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-track-fog" aria-hidden>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 9h18" strokeLinecap="round" />
+            <circle cx="6.5" cy="6.5" r="0.6" fill="currentColor" />
+          </svg>
+          <p className="text-sm font-medium text-track-night">Ainda não há publicações</p>
+          <p className="text-sm text-track-fog">
+            Seja o primeiro a compartilhar um treino, uma conquista ou uma foto usando o campo acima.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           {feed.map((post) => (

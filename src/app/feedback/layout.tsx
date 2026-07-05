@@ -11,7 +11,7 @@ import {
   IconePessoas,
 } from "@/components/layout/iconesNav";
 
-export default async function FeedLayout({
+export default async function FeedbackLayout({
   children,
 }: {
   children: React.ReactNode;

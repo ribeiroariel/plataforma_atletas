@@ -692,6 +692,42 @@ create policy storage_feed_delete_own
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+-- -----------------------------------------------------------------------------
+-- 7. FEEDBACK (ideias/sugestões de melhoria do site)
+-- -----------------------------------------------------------------------------
+-- Qualquer usuário logado (atleta ou treinador) envia sugestões. Cada usuário
+-- só lê as PRÓPRIAS sugestões (policy de select por user_id). O Ariel/coach lê
+-- tudo pelo SQL Editor / service_role (que bypassa RLS) — não há necessidade de
+-- expor o feedback de todo mundo para todo mundo.
+create table if not exists public.feedback (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  mensagem   text not null,
+  categoria  text check (categoria in ('ideia', 'problema', 'elogio', 'outro')),
+  created_at timestamptz not null default now(),
+  constraint feedback_mensagem_tamanho check (char_length(trim(mensagem)) between 1 and 2000)
+);
+create index if not exists feedback_user_idx on public.feedback (user_id, created_at desc);
+
+alter table public.feedback enable row level security;
+alter table public.feedback force row level security;
+
+drop policy if exists feedback_select_own on public.feedback;
+create policy feedback_select_own
+  on public.feedback for select
+  to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists feedback_insert_own on public.feedback;
+create policy feedback_insert_own
+  on public.feedback for insert
+  to authenticated
+  with check (user_id = auth.uid());
+
+-- Sem policy de UPDATE/DELETE para authenticated: sugestão enviada não é
+-- editável nem apagável pelo cliente (histórico preservado; ajustes via
+-- service_role, se preciso).
+
 -- =============================================================================
 -- FIM. Ver mensagem de acompanhamento para: suposições assumidas, testes de
 -- vazamento e o que falta para eu rodá-los de verdade.

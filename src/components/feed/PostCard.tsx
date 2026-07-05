@@ -112,21 +112,25 @@ export function PostCard({ post }: { post: PostFeed }) {
         />
       )}
 
-      <div className="flex items-center gap-4 border-t border-track-fog/15 pt-2 text-sm">
+      <div className="flex items-center gap-2 border-t border-track-fog/15 pt-2 text-sm">
         <button
           type="button"
           onClick={curtir}
-          className={`flex items-center gap-1.5 font-medium transition-colors ${
+          className={`flex items-center gap-1.5 rounded-[var(--radius-badge)] px-2 py-1 font-medium transition-colors hover:bg-lane-chalk focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stadium-blue/40 ${
             curtido ? "text-split-ember" : "text-track-fog hover:text-track-night"
           }`}
           aria-pressed={curtido}
+          aria-label={curtido ? "Descurtir publicação" : "Curtir publicação"}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill={curtido ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <path d="M12 20.5S3 14.9 3 8.9C3 5.9 5.2 4 7.6 4c1.6 0 3.2.9 4.4 2.7C13.2 4.9 14.8 4 16.4 4 18.8 4 21 5.9 21 8.9c0 6-9 11.6-9 11.6z" strokeLinejoin="round" />
           </svg>
-          {totalCurtidas > 0 ? totalCurtidas : "Curtir"}
+          {totalCurtidas > 0 ? `${totalCurtidas} ${totalCurtidas > 1 ? "curtidas" : "curtida"}` : "Curtir"}
         </button>
-        <span className="text-track-fog">
+        <span className="flex items-center gap-1.5 px-2 py-1 text-track-fog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M21 11.5a8.5 8.5 0 01-12.3 7.6L3 20.5l1.4-5.2A8.5 8.5 0 1121 11.5z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           {comentarios.length > 0 ? `${comentarios.length} comentário${comentarios.length > 1 ? "s" : ""}` : "Sem comentários"}
         </span>
       </div>
@@ -151,13 +155,14 @@ export function PostCard({ post }: { post: PostFeed }) {
           value={novoComentario}
           onChange={(e) => setNovoComentario(e.target.value)}
           maxLength={500}
+          aria-label="Escrever um comentário"
           placeholder="Escreva um comentário..."
-          className="flex-1 rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-1.5 text-sm text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+          className="flex-1 rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-1.5 text-sm text-track-night outline-none transition-colors placeholder:text-track-fog focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
         />
         <button
           type="submit"
           disabled={!novoComentario.trim()}
-          className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-deep-lane disabled:opacity-50"
+          className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-deep-lane focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stadium-blue/40 disabled:opacity-50"
         >
           Enviar
         </button>

@@ -36,7 +36,12 @@ export async function criarPost(_estadoAnterior: unknown, formData: FormData): P
     const { error: upErro } = await supabase.storage
       .from("feed-images")
       .upload(caminho, file, { contentType: file.type });
-    if (upErro) return { erro: "Não deu para enviar a foto." };
+    if (upErro) {
+      // Loga o erro real do Supabase no servidor (bucket ausente, policy de
+      // storage não aplicada, limite de tamanho etc.) sem expô-lo ao usuário.
+      console.error("[feed] falha ao enviar foto para o storage:", upErro);
+      return { erro: "Não deu para enviar a foto. Tente de novo." };
+    }
 
     imageUrl = supabase.storage.from("feed-images").getPublicUrl(caminho).data.publicUrl;
   }
@@ -46,7 +51,10 @@ export async function criarPost(_estadoAnterior: unknown, formData: FormData): P
     texto: texto || null,
     image_url: imageUrl,
   });
-  if (error) return { erro: "Não deu para publicar. Tente de novo." };
+  if (error) {
+    console.error("[feed] falha ao inserir post:", error);
+    return { erro: "Não deu para publicar. Tente de novo." };
+  }
 
   revalidatePath("/feed");
   return { ok: true };

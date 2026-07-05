@@ -43,3 +43,14 @@ export const IconeComparar = (
     <path d="M7 8l-3 3 3 3M17 8l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+export const IconeFeedback = (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <path d="M9 18h6M10 21h4" strokeLinecap="round" />
+    <path
+      d="M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0012 3z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

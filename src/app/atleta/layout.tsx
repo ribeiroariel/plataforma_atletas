@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import {
   IconeCalendario,
   IconeFeed,
+  IconeFeedback,
   IconeGrafico,
   IconeGrid,
 } from "@/components/layout/iconesNav";
@@ -28,6 +29,7 @@ export default async function AtletaLayout({
     { href: "/atleta/agenda", label: "Agenda", icon: IconeCalendario },
     { href: "/atleta/evolucao", label: "Evolução", icon: IconeGrafico },
     { href: "/feed", label: "Feed", icon: IconeFeed },
+    { href: "/feedback", label: "Feedback", icon: IconeFeedback },
   ];
 
   return (
