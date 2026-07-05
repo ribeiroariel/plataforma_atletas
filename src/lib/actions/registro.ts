@@ -3,22 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAthleteId } from "@/lib/supabase/athlete";
+import { paceParaMinutos, numero } from "./valores";
 
 type Resultado = { ok: true } | { erro: string };
-
-// Converte "5:30" (min:seg) ou "5,5" em minutos decimais.
-function paceParaMinutos(valor: string): number | null {
-  const texto = valor.trim();
-  const mmss = texto.match(/^(\d+):([0-5]\d)$/);
-  if (mmss) return Number(mmss[1]) + Number(mmss[2]) / 60;
-  const n = Number(texto.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-
-function numero(valor: string): number | null {
-  const n = Number(String(valor).replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
 
 export async function registrarTreino(
   _estadoAnterior: unknown,

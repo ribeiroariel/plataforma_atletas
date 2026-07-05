@@ -31,7 +31,8 @@ export function BotaoConcluido({
       onClick={aoClicar}
       disabled={pendente}
       aria-pressed={concluido}
-      className={`inline-flex items-center gap-1.5 rounded-[var(--radius-badge)] px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${
+      aria-label={concluido ? "Concluído" : "Marcar concluído"}
+      className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-[var(--radius-badge)] px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${
         concluido
           ? "bg-stadium-blue text-white"
           : "border border-track-fog/40 text-track-fog hover:bg-lane-chalk"
@@ -49,7 +50,9 @@ export function BotaoConcluido({
           </svg>
         )}
       </span>
-      {concluido ? "Concluído" : "Marcar concluído"}
+      <span className="hidden sm:inline">
+        {concluido ? "Concluído" : "Marcar concluído"}
+      </span>
     </button>
   );
 }

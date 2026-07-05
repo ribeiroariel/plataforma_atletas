@@ -1,16 +1,20 @@
-import type { TreinoParseado } from "@/lib/planilha/parseTreino";
+import { type TreinoParseado, unidadesRegistraveis } from "@/lib/planilha/parseTreino";
 import { BlocosTextoView } from "./BlocosTextoView";
 import { DiaAccordion } from "./DiaAccordion";
 import { BotaoConcluido } from "./BotaoConcluido";
+import { SessaoRegistros } from "./SessaoRegistros";
+import type { RegistroMapa } from "./ExercicioRegistro";
 
 export function TreinoView({
   treino,
   trainingPlanId,
   concluidas,
+  registros,
 }: {
   treino: TreinoParseado;
   trainingPlanId: string;
   concluidas: string[];
+  registros: RegistroMapa;
 }) {
   const feito = (chave: string) => concluidas.includes(chave);
 
@@ -29,6 +33,7 @@ export function TreinoView({
                   dia={dia}
                   trainingPlanId={trainingPlanId}
                   concluido={feito(dia.chave)}
+                  registros={registros}
                 />
               ))}
             </div>
@@ -50,16 +55,16 @@ export function TreinoView({
         {treino.sessao.map((bloco, i) => (
           <div
             key={i}
-            className={`rounded-[var(--radius-badge)] border bg-white p-4 ${
+            className={`rounded-[var(--radius-badge)] border bg-white p-3 sm:p-4 ${
               feito(bloco.chave) ? "border-stadium-blue/40" : "border-track-fog/25"
             }`}
           >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-baseline gap-2">
-                <span className="tabular-data text-xs font-semibold text-stadium-blue">
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                <span className="tabular-data shrink-0 text-xs font-semibold text-stadium-blue">
                   BLOCO {bloco.numero}
                 </span>
-                <h3 className="font-display text-base font-semibold text-track-night">
+                <h3 className="font-display text-base font-semibold text-track-night break-words">
                   {bloco.titulo}
                 </h3>
               </div>
@@ -75,6 +80,12 @@ export function TreinoView({
                 {bloco.parametros}
               </p>
             )}
+            <SessaoRegistros
+              trainingPlanId={trainingPlanId}
+              sessionKey={bloco.chave}
+              unidades={unidadesRegistraveis(bloco)}
+              registros={registros}
+            />
           </div>
         ))}
       </div>

@@ -728,6 +728,110 @@ create policy feedback_insert_own
 -- editável nem apagável pelo cliente (histórico preservado; ajustes via
 -- service_role, se preciso).
 
+-- -----------------------------------------------------------------------------
+-- 8. EXERCISE_LOGS (registro por exercício dentro da visualização do treino)
+-- -----------------------------------------------------------------------------
+-- O atleta lança um valor por exercício (kg/distancia/tempo/pace) direto na
+-- tela do treino. session_key é a MESMA chave das conclusões ('s0-d1' para um
+-- dia da grade, 'b3' para um bloco de pista); item_index é a posição 0-based do
+-- exercício registrável dentro da sessão (derivada de forma estável pelo parser
+-- — ver unidadesRegistraveis em src/lib/planilha/parseTreino.ts). Cada
+-- (plano, sessão, item) tem no máximo UM log (unique) — o app faz upsert.
+--
+-- Consolidação: a server action recalcula, a cada save/remove, o agregado do
+-- dia por métrica e faz upsert/delete em training_data. Nos dias em que o
+-- atleta usa este registro, exercise_logs é a fonte de verdade daquele
+-- (data, tipo, variavel).
+create table if not exists public.exercise_logs (
+  id               uuid primary key default gen_random_uuid(),
+  athlete_id       uuid not null references public.athletes (id) on delete cascade,
+  training_plan_id uuid not null references public.training_plans (id) on delete cascade,
+  session_key      text not null,   -- mesma chave das conclusões: 's0-d1' (dia) ou 'b3' (bloco)
+  item_index       int  not null,   -- posição 0-based do exercício dentro da sessão
+  metrica          text not null check (metrica in ('kg','distancia','tempo','pace')),
+  valor            numeric not null check (valor > 0),
+  data             date not null default current_date check (data <= current_date),
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (training_plan_id, session_key, item_index)
+);
+create index if not exists exercise_logs_athlete_data_idx on public.exercise_logs (athlete_id, data);
+
+alter table public.exercise_logs enable row level security;
+alter table public.exercise_logs force row level security;
+
+-- SELECT: atleta dono.
+drop policy if exists exercise_logs_select_athlete_own on public.exercise_logs;
+create policy exercise_logs_select_athlete_own
+  on public.exercise_logs for select
+  to authenticated
+  using (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+  );
+
+-- SELECT: treinador vinculado (uso futuro — sem UI de coach por enquanto).
+drop policy if exists exercise_logs_select_coach_linked on public.exercise_logs;
+create policy exercise_logs_select_coach_linked
+  on public.exercise_logs for select
+  to authenticated
+  using (
+    athlete_id in (
+      select ca.athlete_id
+      from public.coach_athletes ca
+      where ca.coach_id = auth.uid()
+    )
+  );
+
+-- INSERT: só o atleta dono, e o plano tem que ser dele (molde de observations).
+drop policy if exists exercise_logs_insert_athlete_own on public.exercise_logs;
+create policy exercise_logs_insert_athlete_own
+  on public.exercise_logs for insert
+  to authenticated
+  with check (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+    and training_plan_id in (
+      select tp.id from public.training_plans tp
+      join public.athletes a on a.id = tp.athlete_id
+      where a.user_id = auth.uid()
+    )
+  );
+
+-- UPDATE: só o atleta dono, e o plano tem que ser dele.
+drop policy if exists exercise_logs_update_athlete_own on public.exercise_logs;
+create policy exercise_logs_update_athlete_own
+  on public.exercise_logs for update
+  to authenticated
+  using (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+  )
+  with check (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+    and training_plan_id in (
+      select tp.id from public.training_plans tp
+      join public.athletes a on a.id = tp.athlete_id
+      where a.user_id = auth.uid()
+    )
+  );
+
+-- DELETE: só o atleta dono.
+drop policy if exists exercise_logs_delete_athlete_own on public.exercise_logs;
+create policy exercise_logs_delete_athlete_own
+  on public.exercise_logs for delete
+  to authenticated
+  using (
+    athlete_id in (
+      select a.id from public.athletes a where a.user_id = auth.uid()
+    )
+  );
+
 -- =============================================================================
 -- FIM. Ver mensagem de acompanhamento para: suposições assumidas, testes de
 -- vazamento e o que falta para eu rodá-los de verdade.

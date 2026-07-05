@@ -44,6 +44,34 @@ export type ModoGenerico = { tipo: "generico"; titulo: string; linhas: string[][
 
 export type TreinoParseado = ModoSemana | ModoBlocos | ModoGenerico;
 
+// Uma "unidade registrável" é o exercício dentro de uma sessão sobre o qual o
+// atleta pode lançar um valor (kg/tempo/distância/pace). O itemIndex é estável:
+// depende só da ordem dos blocos parseados, então a mesma planilha sempre gera
+// os mesmos índices (usados como chave em exercise_logs).
+export type UnidadeRegistravel = { itemIndex: number; rotulo: string };
+
+// Dada uma sessão (um DiaSemana no modo semana ou um BlocoSessao no modo
+// blocos), devolve a lista de exercícios registráveis com itemIndex 0-based:
+//  - cada bloco item-numerado ou item-lista, na ordem em que aparece;
+//  - se a sessão não tiver nenhum item desses, a própria sessão vira UMA
+//    unidade (itemIndex 0), rotulada pelo título/resumo dela.
+export function unidadesRegistraveis(sessao: DiaSemana | BlocoSessao): UnidadeRegistravel[] {
+  const itens: UnidadeRegistravel[] = [];
+  for (const bloco of sessao.blocos) {
+    if (bloco.tipo === "item-numerado" || bloco.tipo === "item-lista") {
+      itens.push({ itemIndex: itens.length, rotulo: bloco.texto });
+    }
+  }
+  if (itens.length > 0) return itens;
+
+  const fallback =
+    "titulo" in sessao
+      ? sessao.titulo
+      : (sessao.blocos.find((b) => b.tipo === "paragrafo" || b.tipo === "subtitulo")?.texto ??
+        sessao.dia);
+  return [{ itemIndex: 0, rotulo: fallback }];
+}
+
 function normalizar(texto: string) {
   return texto
     .normalize("NFD")

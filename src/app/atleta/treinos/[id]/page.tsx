@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseTreino } from "@/lib/planilha/parseTreino";
 import { TreinoView } from "@/components/treino/TreinoView";
+import type { RegistroExercicio, RegistroMapa } from "@/components/treino/ExercicioRegistro";
 import { ObservacaoForm } from "@/components/treino/ObservacaoForm";
 
 function tituloLegivel(nomeArquivo: string) {
@@ -51,15 +52,29 @@ export default async function TreinoPage({
 
   const concluidas = (conclusoes ?? []).map((c) => c.session_key);
 
+  const { data: logs } = await supabase
+    .from("exercise_logs")
+    .select("session_key, item_index, metrica, valor, data")
+    .eq("training_plan_id", plano.id);
+
+  const registros: RegistroMapa = {};
+  for (const l of logs ?? []) {
+    registros[`${l.session_key}:${l.item_index}`] = {
+      metrica: l.metrica as RegistroExercicio["metrica"],
+      valor: Number(l.valor),
+      data: l.data,
+    };
+  }
+
   const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-6 py-10">
+    <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-4 py-6 sm:px-6 sm:py-10">
       <div>
         <Link href="/atleta" className="text-sm text-stadium-blue hover:underline">
           ← Voltar
         </Link>
-        <div className="mt-2 flex items-center justify-between gap-4">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-2xl font-bold text-track-night">
             {tituloLegivel(plano.nome_arquivo)}
           </h1>
@@ -75,7 +90,12 @@ export default async function TreinoPage({
       </div>
 
       {treino ? (
-        <TreinoView treino={treino} trainingPlanId={plano.id} concluidas={concluidas} />
+        <TreinoView
+          treino={treino}
+          trainingPlanId={plano.id}
+          concluidas={concluidas}
+          registros={registros}
+        />
       ) : (
         <p className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white px-4 py-6 text-sm text-track-fog">
           Não foi possível carregar o conteúdo desse treino agora.
