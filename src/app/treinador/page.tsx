@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/lib/actions/auth";
-import { FotoPerfil } from "@/components/perfil/FotoPerfil";
 
 export default async function TreinadorPage() {
   const supabase = await createClient();
@@ -22,30 +20,9 @@ export default async function TreinadorPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 bg-track-night px-6 py-10 text-white">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FotoPerfil nome={profile?.nome ?? "Treinador"} avatarUrl={profile?.avatar_url ?? null} />
-          <h1 className="font-display text-2xl font-bold">
-            Painel do treinador — {profile?.nome ?? ""}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/treinador/comparar"
-            className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-split hover:text-track-night"
-          >
-            Comparar atletas
-          </Link>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-[var(--radius-badge)] border border-white/30 px-3 py-1.5 text-sm hover:bg-white/10"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
-      </div>
+      <h1 className="font-display text-2xl font-bold">
+        Painel do treinador — {profile?.nome ?? ""}
+      </h1>
 
       <div className="rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
         <h2 className="font-display text-lg font-semibold">Seus atletas</h2>

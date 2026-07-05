@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/lib/actions/auth";
 import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
-import { FotoPerfil } from "@/components/perfil/FotoPerfil";
 
 const ICONE_POR_MODO = {
   semana: IconeAcademia,
@@ -52,32 +50,11 @@ export default async function AtletaPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FotoPerfil nome={athlete?.nome ?? "Atleta"} avatarUrl={athlete?.avatar_url ?? null} />
-          <div>
-            <h1 className="font-display text-2xl font-bold text-track-night">
-              Olá, {athlete?.nome ?? "atleta"}
-            </h1>
-            <p className="text-sm text-track-fog">Seus treinos</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/atleta/evolucao"
-            className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-deep-lane"
-          >
-            Sua evolução
-          </Link>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-white"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
+      <div>
+        <h1 className="font-display text-2xl font-bold text-track-night">
+          Olá, {athlete?.nome ?? "atleta"}
+        </h1>
+        <p className="text-sm text-track-fog">Seus treinos</p>
       </div>
 
       {planosComLink.length === 0 ? (

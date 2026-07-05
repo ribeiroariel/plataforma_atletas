@@ -34,7 +34,10 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const rotaDeAuth = ROTAS_AUTH.includes(path);
-  const rotaProtegida = path.startsWith("/atleta") || path.startsWith("/treinador");
+  const rotaProtegida =
+    path.startsWith("/atleta") ||
+    path.startsWith("/treinador") ||
+    path.startsWith("/feed");
 
   if (!user) {
     if (rotaProtegida) {

@@ -158,6 +158,38 @@ create table if not exists public.training_completions (
 create index if not exists training_completions_plan_idx
   on public.training_completions (training_plan_id);
 
+-- FEED SOCIAL: posts, curtidas e comentários. Diferente do resto do schema,
+-- o feed é COMPARTILHADO — qualquer usuário logado vê todos os posts (decisão
+-- explícita do produto). Os dados de TREINO seguem isolados; só o feed é
+-- coletivo. A escrita é sempre do próprio autor (author_id/user_id = auth.uid()).
+create table if not exists public.posts (
+  id         uuid primary key default gen_random_uuid(),
+  author_id  uuid not null references auth.users (id) on delete cascade,
+  texto      text,
+  image_url  text,
+  created_at timestamptz not null default now(),
+  constraint post_tem_conteudo check (coalesce(trim(texto), '') <> '' or image_url is not null),
+  constraint post_texto_max check (char_length(coalesce(texto, '')) <= 1000)
+);
+create index if not exists posts_created_idx on public.posts (created_at desc);
+
+create table if not exists public.post_likes (
+  post_id    uuid not null references public.posts (id) on delete cascade,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+create table if not exists public.post_comments (
+  id         uuid primary key default gen_random_uuid(),
+  post_id    uuid not null references public.posts (id) on delete cascade,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  texto      text not null,
+  created_at timestamptz not null default now(),
+  constraint comment_texto_tamanho check (char_length(texto) between 1 and 500)
+);
+create index if not exists post_comments_post_idx on public.post_comments (post_id, created_at);
+
 -- -----------------------------------------------------------------------------
 -- 2. TRIGGER: cria profile (+ athletes, se for atleta) no cadastro
 -- -----------------------------------------------------------------------------
@@ -206,6 +238,9 @@ alter table public.training_plans enable row level security;
 alter table public.training_data  enable row level security;
 alter table public.observations   enable row level security;
 alter table public.training_completions enable row level security;
+alter table public.posts          enable row level security;
+alter table public.post_likes     enable row level security;
+alter table public.post_comments  enable row level security;
 
 -- Trava adicional: mesmo que alguém rode "ALTER TABLE ... DISABLE ROW LEVEL
 -- SECURITY" por engano depois, FORCE garante que o dono da tabela também
@@ -217,6 +252,9 @@ alter table public.training_plans force row level security;
 alter table public.training_data  force row level security;
 alter table public.observations   force row level security;
 alter table public.training_completions force row level security;
+alter table public.posts          force row level security;
+alter table public.post_likes     force row level security;
+alter table public.post_comments  force row level security;
 
 -- -----------------------------------------------------------------------------
 -- 4. POLICIES
@@ -224,11 +262,16 @@ alter table public.training_completions force row level security;
 
 -- profiles: cada usuário só vê/edita o próprio perfil. Papel (papel) não é
 -- editável pelo cliente (ver GRANT column-level abaixo).
+-- Qualquer usuário logado lê os perfis (nome + foto) — necessário para o feed
+-- social mostrar quem postou/comentou/curtiu. Só expõe identidade pública
+-- (nome, avatar, papel); os DADOS de treino continuam protegidos nas outras
+-- tabelas. A edição segue restrita ao dono (policy de update abaixo).
 drop policy if exists profiles_select_own on public.profiles;
-create policy profiles_select_own
+drop policy if exists profiles_select_authenticated on public.profiles;
+create policy profiles_select_authenticated
   on public.profiles for select
   to authenticated
-  using (user_id = auth.uid());
+  using (true);
 
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own
@@ -488,6 +531,40 @@ create policy training_completions_delete_athlete_own
     )
   );
 
+-- FEED: leitura compartilhada por todos os logados; escrita só do próprio autor.
+drop policy if exists posts_select_all on public.posts;
+create policy posts_select_all on public.posts for select to authenticated using (true);
+
+drop policy if exists posts_insert_own on public.posts;
+create policy posts_insert_own on public.posts for insert to authenticated
+  with check (author_id = auth.uid());
+
+drop policy if exists posts_delete_own on public.posts;
+create policy posts_delete_own on public.posts for delete to authenticated
+  using (author_id = auth.uid());
+
+drop policy if exists post_likes_select_all on public.post_likes;
+create policy post_likes_select_all on public.post_likes for select to authenticated using (true);
+
+drop policy if exists post_likes_insert_own on public.post_likes;
+create policy post_likes_insert_own on public.post_likes for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists post_likes_delete_own on public.post_likes;
+create policy post_likes_delete_own on public.post_likes for delete to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists post_comments_select_all on public.post_comments;
+create policy post_comments_select_all on public.post_comments for select to authenticated using (true);
+
+drop policy if exists post_comments_insert_own on public.post_comments;
+create policy post_comments_insert_own on public.post_comments for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists post_comments_delete_own on public.post_comments;
+create policy post_comments_delete_own on public.post_comments for delete to authenticated
+  using (user_id = auth.uid());
+
 -- -----------------------------------------------------------------------------
 -- 5. STORAGE (planilhas .xlsx)
 -- -----------------------------------------------------------------------------
@@ -580,6 +657,38 @@ create policy storage_avatars_delete_own
   to authenticated
   using (
     bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Bucket público das fotos do feed. Path: feed-images/{auth.uid()}/arquivo.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'feed-images',
+  'feed-images',
+  true,
+  5242880, -- 5 MB
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+
+drop policy if exists storage_feed_write_own on storage.objects;
+create policy storage_feed_write_own
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'feed-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists storage_feed_delete_own on storage.objects;
+create policy storage_feed_delete_own
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'feed-images'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
