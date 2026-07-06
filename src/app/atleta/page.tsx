@@ -83,12 +83,20 @@ export default async function AtletaPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  <a
+                    href={`/atleta/treinos/${plano.id}/imprimir`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-lane-chalk"
+                  >
+                    PDF
+                  </a>
                   {plano.downloadUrl && (
                     <a
                       href={plano.downloadUrl}
-                      className="rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-lane-chalk"
+                      className="hidden rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-lane-chalk sm:inline-block"
                     >
-                      Baixar .xlsx
+                      .xlsx
                     </a>
                   )}
                   <Link

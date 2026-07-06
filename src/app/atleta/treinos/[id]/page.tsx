@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { parseTreino } from "@/lib/planilha/parseTreino";
+import { getTreinoData } from "@/lib/treino/getTreinoData";
 import { TreinoView } from "@/components/treino/TreinoView";
-import type { RegistroExercicio, RegistroMapa } from "@/components/treino/ExercicioRegistro";
 import { ObservacaoForm } from "@/components/treino/ObservacaoForm";
 
 function tituloLegivel(nomeArquivo: string) {
@@ -19,22 +18,15 @@ export default async function TreinoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const dados = await getTreinoData(id);
 
-  const { data: plano } = await supabase
-    .from("training_plans")
-    .select("id, athlete_id, nome_arquivo, arquivo_url, data_criacao")
-    .eq("id", id)
-    .single();
-
-  if (!plano) {
+  if (!dados) {
     notFound();
   }
 
-  const { data: arquivo } = await supabase.storage
-    .from("training-plans")
-    .download(plano.arquivo_url);
+  const { plano, treino, concluidas, registros } = dados;
 
+  const supabase = await createClient();
   const { data: downloadUrl } = await supabase.storage
     .from("training-plans")
     .createSignedUrl(plano.arquivo_url, 300);
@@ -44,29 +36,6 @@ export default async function TreinoPage({
     .select("id, texto, data")
     .eq("training_plan_id", plano.id)
     .order("data", { ascending: false });
-
-  const { data: conclusoes } = await supabase
-    .from("training_completions")
-    .select("session_key")
-    .eq("training_plan_id", plano.id);
-
-  const concluidas = (conclusoes ?? []).map((c) => c.session_key);
-
-  const { data: logs } = await supabase
-    .from("exercise_logs")
-    .select("session_key, item_index, metrica, valor, data")
-    .eq("training_plan_id", plano.id);
-
-  const registros: RegistroMapa = {};
-  for (const l of logs ?? []) {
-    registros[`${l.session_key}:${l.item_index}`] = {
-      metrica: l.metrica as RegistroExercicio["metrica"],
-      valor: Number(l.valor),
-      data: l.data,
-    };
-  }
-
-  const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
 
   return (
     <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-4 py-6 sm:px-6 sm:py-10">
@@ -78,14 +47,24 @@ export default async function TreinoPage({
           <h1 className="font-display text-2xl font-bold text-track-night">
             {tituloLegivel(plano.nome_arquivo)}
           </h1>
-          {downloadUrl?.signedUrl && (
+          <div className="flex shrink-0 items-center gap-2">
             <a
-              href={downloadUrl.signedUrl}
-              className="shrink-0 rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-white"
+              href={`/atleta/treinos/${plano.id}/imprimir`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-deep-lane"
             >
-              Baixar .xlsx
+              Baixar PDF
             </a>
-          )}
+            {downloadUrl?.signedUrl && (
+              <a
+                href={downloadUrl.signedUrl}
+                className="rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-white"
+              >
+                .xlsx original
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

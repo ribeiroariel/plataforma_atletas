@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="relative flex min-h-[100svh] flex-col">
+    <div className="relative flex min-h-dvh flex-col">
       <Image
         src="/fotos/hero-chegada.webp"
         alt=""

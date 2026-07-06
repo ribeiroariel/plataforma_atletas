@@ -29,6 +29,13 @@ function valorInicialTexto(inicial?: RegistroExercicio): string {
   return String(inicial.valor).replace(".", ",");
 }
 
+// Texto pronto pra exibição somente-leitura (ex.: página de impressão):
+// "60 kg", "8:30 min/km".
+export function formatarRegistro(registro: RegistroExercicio): string {
+  const unidade = { kg: "kg", tempo: "min", distancia: "km", pace: "min/km" }[registro.metrica];
+  return `${valorInicialTexto(registro)} ${unidade}`;
+}
+
 type Status = "idle" | "salvando" | "salvo" | "erro";
 
 export function ExercicioRegistro({

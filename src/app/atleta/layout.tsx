@@ -34,13 +34,15 @@ export default async function AtletaLayout({
 
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <Sidebar
-        variante="light"
-        titulo="Atleta"
-        nome={athlete?.nome ?? "Atleta"}
-        avatarUrl={athlete?.avatar_url ?? null}
-        itens={itens}
-      />
+      <div className="print:hidden">
+        <Sidebar
+          variante="light"
+          titulo="Atleta"
+          nome={athlete?.nome ?? "Atleta"}
+          avatarUrl={athlete?.avatar_url ?? null}
+          itens={itens}
+        />
+      </div>
       <div className="flex flex-1 flex-col">{children}</div>
     </div>
   );

@@ -66,3 +66,14 @@ h1, h2, h3, .font-display {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media print {
+  body {
+    background: #ffffff;
+    color: var(--color-track-night);
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}
