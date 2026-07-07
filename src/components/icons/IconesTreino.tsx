@@ -48,6 +48,14 @@ export function IconeBicicleta({ className }: IconProps) {
   );
 }
 
+export function IconeDescanso({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+    </svg>
+  );
+}
+
 export function IconeCardio({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>

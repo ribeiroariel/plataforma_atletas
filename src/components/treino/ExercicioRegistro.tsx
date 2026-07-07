@@ -1,19 +1,27 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { registrarExercicio, removerExercicio } from "@/lib/actions/exercicio";
+import { sugerirMetricas, type Metrica } from "@/lib/planilha/sugerirMetrica";
+import { numero } from "@/lib/actions/valores";
 
-export type Metrica = "kg" | "distancia" | "tempo" | "pace";
+export type { Metrica };
 export type RegistroExercicio = { metrica: Metrica; valor: number; data: string };
 // Mapa de registros já salvos: chave = `${sessionKey}:${itemIndex}`.
 export type RegistroMapa = Record<string, RegistroExercicio>;
 
-const OPCOES_METRICA: { valor: Metrica; rotulo: string }[] = [
-  { valor: "kg", rotulo: "Carga (kg)" },
-  { valor: "tempo", rotulo: "Tempo (min)" },
-  { valor: "distancia", rotulo: "Distância (km)" },
-  { valor: "pace", rotulo: "Pace (min/km)" },
-];
+function rotuloMetrica(valor: Metrica, unidadeTempo: "seg" | "min"): string {
+  switch (valor) {
+    case "kg":
+      return "Carga (kg)";
+    case "tempo":
+      return unidadeTempo === "seg" ? "Tempo (segundos)" : "Tempo (min)";
+    case "distancia":
+      return "Distância (km)";
+    case "pace":
+      return "Pace (min/km)";
+  }
+}
 
 // Converte minutos decimais de volta para "m:ss" (exibição de pace salvo).
 function minutosParaPace(min: number): string {
@@ -23,10 +31,23 @@ function minutosParaPace(min: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function valorInicialTexto(inicial?: RegistroExercicio): string {
+function valorInicialTexto(inicial: RegistroExercicio | undefined, unidadeTempo: "seg" | "min"): string {
   if (!inicial) return "";
   if (inicial.metrica === "pace") return minutosParaPace(inicial.valor);
+  if (inicial.metrica === "tempo" && unidadeTempo === "seg") {
+    return String(Math.round(inicial.valor * 60));
+  }
   return String(inicial.valor).replace(".", ",");
+}
+
+// O servidor sempre trata "tempo" como minutos — quando a métrica sugerida é
+// segundos (repetições curtas, ex.: 200/300/400m), convertemos aqui antes de
+// enviar, e de volta ao reidratar o valor salvo (valorInicialTexto acima).
+function paraMinutosSeNecessario(bruto: string, metrica: Metrica, unidadeTempo: "seg" | "min"): string {
+  if (metrica !== "tempo" || unidadeTempo !== "seg") return bruto;
+  const segundos = numero(bruto);
+  if (segundos === null) return bruto;
+  return String(segundos / 60);
 }
 
 type Status = "idle" | "salvando" | "salvo" | "erro";
@@ -46,8 +67,19 @@ export function ExercicioRegistro({
   data: string;
   inicial?: RegistroExercicio;
 }) {
-  const [metrica, setMetrica] = useState<Metrica>(inicial?.metrica ?? "kg");
-  const [valorTexto, setValorTexto] = useState(() => valorInicialTexto(inicial));
+  const sugestao = useMemo(() => sugerirMetricas(rotulo), [rotulo]);
+  // Se já existe um registro salvo com uma métrica fora da sugestão atual
+  // (ex.: planilha reescrita depois do registro), mantemos ela disponível
+  // pra não esconder um valor já lançado.
+  const opcoesDisponiveis = useMemo(() => {
+    if (inicial && !sugestao.opcoes.includes(inicial.metrica)) {
+      return [inicial.metrica, ...sugestao.opcoes];
+    }
+    return sugestao.opcoes;
+  }, [sugestao, inicial]);
+
+  const [metrica, setMetrica] = useState<Metrica>(inicial?.metrica ?? sugestao.opcoes[0]);
+  const [valorTexto, setValorTexto] = useState(() => valorInicialTexto(inicial, sugestao.unidadeTempo));
   const [salvo, setSalvo] = useState<boolean>(!!inicial);
   const [status, setStatus] = useState<Status>("idle");
   const [mensagem, setMensagem] = useState("");
@@ -56,6 +88,7 @@ export function ExercicioRegistro({
   const selectId = useId();
   const inputId = useId();
   const ehPace = metrica === "pace";
+  const ehSegundos = metrica === "tempo" && sugestao.unidadeTempo === "seg";
 
   function salvar() {
     const bruto = valorTexto.trim();
@@ -72,7 +105,7 @@ export function ExercicioRegistro({
         sessionKey,
         itemIndex,
         metrica,
-        bruto,
+        paraMinutosSeNecessario(bruto, metrica, sugestao.unidadeTempo),
         data,
       );
       if ("erro" in r) {
@@ -112,25 +145,33 @@ export function ExercicioRegistro({
       <span className="min-w-0 flex-1 text-sm break-words text-track-night">{rotulo}</span>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={selectId} className="sr-only">
-          Métrica do exercício
-        </label>
-        <select
-          id={selectId}
-          value={metrica}
-          onChange={(e) => {
-            setMetrica(e.target.value as Metrica);
-            setStatus("idle");
-            setMensagem("");
-          }}
-          className="min-h-[44px] rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-2 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
-        >
-          {OPCOES_METRICA.map((op) => (
-            <option key={op.valor} value={op.valor}>
-              {op.rotulo}
-            </option>
-          ))}
-        </select>
+        {opcoesDisponiveis.length > 1 ? (
+          <>
+            <label htmlFor={selectId} className="sr-only">
+              Métrica do exercício
+            </label>
+            <select
+              id={selectId}
+              value={metrica}
+              onChange={(e) => {
+                setMetrica(e.target.value as Metrica);
+                setStatus("idle");
+                setMensagem("");
+              }}
+              className="min-h-[44px] rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-2 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+            >
+              {opcoesDisponiveis.map((valor) => (
+                <option key={valor} value={valor}>
+                  {rotuloMetrica(valor, sugestao.unidadeTempo)}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <span className="min-h-[44px] inline-flex items-center rounded-[var(--radius-badge)] bg-track-fog/10 px-2.5 text-xs font-medium text-track-night/70">
+            {rotuloMetrica(opcoesDisponiveis[0], sugestao.unidadeTempo)}
+          </span>
+        )}
 
         <label htmlFor={inputId} className="sr-only">
           Valor do exercício
@@ -140,7 +181,7 @@ export function ExercicioRegistro({
           type="text"
           inputMode={ehPace ? "text" : "decimal"}
           value={valorTexto}
-          placeholder={ehPace ? "mm:ss" : "0"}
+          placeholder={ehPace ? "mm:ss" : ehSegundos ? "ex.: 45" : "0"}
           onChange={(e) => {
             setValorTexto(e.target.value);
             if (status !== "idle") {

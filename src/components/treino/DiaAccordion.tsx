@@ -6,6 +6,7 @@ import { BlocosTextoView } from "./BlocosTextoView";
 import { BotaoConcluido } from "./BotaoConcluido";
 import { SessaoRegistros } from "./SessaoRegistros";
 import type { RegistroMapa } from "./ExercicioRegistro";
+import { IconeDescanso } from "@/components/icons/IconesTreino";
 
 function resumo(dia: DiaSemana): string {
   const primeiro = dia.blocos[0];
@@ -30,9 +31,12 @@ export function DiaAccordion({
 
   if (dia.descanso) {
     return (
-      <div className="flex min-h-[44px] items-center justify-between rounded-[var(--radius-badge)] px-4 py-3 text-sm text-track-fog">
-        <span className="font-medium uppercase tracking-wide">{dia.dia}</span>
-        <span>Descanso</span>
+      <div className="flex min-h-[44px] items-center justify-between rounded-[var(--radius-badge)] border border-dashed border-track-fog/40 bg-white/70 px-4 py-3 text-sm">
+        <span className="text-xs font-semibold uppercase tracking-wide text-track-night/70">{dia.dia}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-badge)] bg-track-fog/15 px-2.5 py-1 text-xs font-medium text-track-night/70">
+          <IconeDescanso className="h-3.5 w-3.5 text-track-fog" />
+          Descanso
+        </span>
       </div>
     );
   }

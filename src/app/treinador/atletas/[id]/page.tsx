@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
+import { TabelaComparativa } from "@/components/evolucao/TabelaComparativa";
 import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
 
 const ICONE_POR_MODO = {
@@ -9,6 +10,24 @@ const ICONE_POR_MODO = {
   blocos: IconePista,
   generico: IconeAcademia,
 } as const;
+
+type Plano = { id: string; nome_arquivo: string; data_criacao: string; modo_treino: string | null; numero_semanas: number | null };
+
+// Só a grade semanal (academia/cardio em ciclo) tem duração inerente — sessões
+// de pista (blocos) não expiram dessa forma. dataFim = data_criacao +
+// numero_semanas semanas; diasRestantes negativo = mesociclo já encerrado.
+function statusMesociclo(plano: Plano, hojeIso: string) {
+  if (plano.modo_treino !== "semana" || !plano.numero_semanas) return null;
+  const fim = new Date(`${plano.data_criacao}T00:00:00Z`);
+  fim.setUTCDate(fim.getUTCDate() + plano.numero_semanas * 7);
+  const hoje = new Date(`${hojeIso}T00:00:00Z`);
+  const diasRestantes = Math.round((fim.getTime() - hoje.getTime()) / 86_400_000);
+  return { diasRestantes };
+}
+
+function nomeLegivel(nomeArquivo: string) {
+  return nomeArquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ");
+}
 
 export default async function AtletaDoTreinadorPage({
   params,
@@ -35,7 +54,7 @@ export default async function AtletaDoTreinadorPage({
 
   const { data: planos } = await supabase
     .from("training_plans")
-    .select("id, nome_arquivo, data_criacao, modo_treino")
+    .select("id, nome_arquivo, data_criacao, modo_treino, numero_semanas")
     .eq("athlete_id", atleta.id)
     .order("data_criacao", { ascending: false });
 
@@ -65,6 +84,12 @@ export default async function AtletaDoTreinadorPage({
     );
   });
 
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  // planos já vem ordenado por data_criacao desc — o primeiro plano em modo
+  // "semana" é o mesociclo vigente.
+  const planoAtual = (planos ?? []).find((p) => p.modo_treino === "semana" && p.numero_semanas);
+  const mesocicloAtual = planoAtual ? statusMesociclo(planoAtual, hojeIso) : null;
+
   return (
     <div className="flex flex-1 flex-col gap-6 bg-track-night px-6 py-10 text-white">
       <div>
@@ -74,7 +99,23 @@ export default async function AtletaDoTreinadorPage({
         <h1 className="mt-2 font-display text-2xl font-bold">{atleta.nome}</h1>
       </div>
 
+      {mesocicloAtual && planoAtual && mesocicloAtual.diasRestantes <= 7 && (
+        <div
+          className={`rounded-[var(--radius-badge)] border px-4 py-3 text-sm ${
+            mesocicloAtual.diasRestantes <= 0
+              ? "border-split-ember/40 bg-split-ember/10 text-split-ember"
+              : "border-split-ember/25 bg-split-ember/5 text-split-ember/90"
+          }`}
+        >
+          {mesocicloAtual.diasRestantes <= 0
+            ? `O mesociclo atual (${nomeLegivel(planoAtual.nome_arquivo)}) encerrou há ${Math.abs(mesocicloAtual.diasRestantes)} dia(s) — hora de montar o próximo treino.`
+            : `O mesociclo atual (${nomeLegivel(planoAtual.nome_arquivo)}) termina em ${mesocicloAtual.diasRestantes} dia(s).`}
+        </div>
+      )}
+
       <EvolucaoDashboard dados={dados ?? []} />
+
+      <TabelaComparativa dados={dados ?? []} />
 
       <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
         <h2 className="font-display text-lg font-semibold">Observações do atleta</h2>
@@ -86,18 +127,36 @@ export default async function AtletaDoTreinadorPage({
               const totalConcluidas = conclusoesPorPlano.get(plano.id) ?? 0;
               const Icone =
                 ICONE_POR_MODO[plano.modo_treino as keyof typeof ICONE_POR_MODO] ?? IconeAcademia;
+              const status = statusMesociclo(plano, hojeIso);
               return (
                 <div key={plano.id} className="border-t border-white/10 pt-3 first:border-0 first:pt-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="flex items-center gap-1.5 text-sm font-medium text-white">
                       <Icone className="h-4 w-4 shrink-0 text-sky-split" />
-                      {plano.nome_arquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ")}
+                      {nomeLegivel(plano.nome_arquivo)}
                     </p>
-                    {totalConcluidas > 0 && (
-                      <span className="tabular-data shrink-0 rounded-[var(--radius-badge)] bg-stadium-blue/20 px-2 py-0.5 text-xs font-medium text-sky-split">
-                        {totalConcluidas} concluída{totalConcluidas > 1 ? "s" : ""}
-                      </span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {status && (
+                        <span
+                          className={`tabular-data rounded-[var(--radius-badge)] px-2 py-0.5 text-xs font-medium ${
+                            status.diasRestantes <= 0
+                              ? "bg-split-ember/20 text-split-ember"
+                              : status.diasRestantes <= 7
+                                ? "bg-split-ember/10 text-split-ember/90"
+                                : "bg-white/10 text-track-fog"
+                          }`}
+                        >
+                          {status.diasRestantes <= 0
+                            ? `encerrado há ${Math.abs(status.diasRestantes)}d`
+                            : `termina em ${status.diasRestantes}d`}
+                        </span>
+                      )}
+                      {totalConcluidas > 0 && (
+                        <span className="tabular-data rounded-[var(--radius-badge)] bg-stadium-blue/20 px-2 py-0.5 text-xs font-medium text-sky-split">
+                          {totalConcluidas} concluída{totalConcluidas > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {obsDoPlano.length > 0 ? (
                     <ul className="mt-1 flex flex-col gap-1">
