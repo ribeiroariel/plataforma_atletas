@@ -66,6 +66,13 @@ create table if not exists public.training_plans (
 alter table public.training_plans
   add column if not exists modo_treino text check (modo_treino in ('semana', 'blocos', 'generico'));
 
+-- numero_semanas: só preenchido quando modo_treino = 'semana' (calculado no
+-- import a partir do parseTreino). data_criacao + numero_semanas*7 dias =
+-- fim estimado do mesociclo, usado pro alerta de "planilha acabando" no
+-- painel do treinador.
+alter table public.training_plans
+  add column if not exists numero_semanas integer;
+
 -- Permite reimportar o mesmo arquivo (mesmo atleta + mesmo nome) sem duplicar
 -- linha — o script de import (Etapa 4) faz upsert nessa chave.
 do $$
