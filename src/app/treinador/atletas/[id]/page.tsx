@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
 import { TabelaComparativa } from "@/components/evolucao/TabelaComparativa";
-import { AnaliseEstatistica } from "@/components/evolucao/AnaliseEstatistica";
 import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
 
 const ICONE_POR_MODO = {
@@ -117,8 +116,6 @@ export default async function AtletaDoTreinadorPage({
       <EvolucaoDashboard dados={dados ?? []} />
 
       <TabelaComparativa dados={dados ?? []} />
-
-      <AnaliseEstatistica dados={dados ?? []} />
 
       <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
         <h2 className="font-display text-lg font-semibold">Observações do atleta</h2>
