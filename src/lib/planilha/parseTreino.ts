@@ -48,17 +48,37 @@ export type TreinoParseado = ModoSemana | ModoBlocos | ModoGenerico;
 // atleta pode lançar um valor (kg/tempo/distância/pace). O itemIndex é estável:
 // depende só da ordem dos blocos parseados, então a mesma planilha sempre gera
 // os mesmos índices (usados como chave em exercise_logs).
-export type UnidadeRegistravel = { itemIndex: number; rotulo: string };
+//   rotulo  -> nome do exercício, usado para exibir na tela (mantido curto).
+//   detalhe -> a linha de séries/reps/distância que ficou junto do item na
+//              planilha (ex.: "4x8-10 | RIR 1-2 | desc.: 2-3min"), usada só
+//              pra inferir a métrica plausível (sugerirMetrica.ts) — nunca
+//              exibida sozinha.
+export type UnidadeRegistravel = { itemIndex: number; rotulo: string; detalhe?: string };
+
+// Linha solta (não numerada) que descreve um tiro/intervalo de pista, ex.:
+// "7x200m", "6x400m", "2x500m + 300m", ou com um rótulo antes do número
+// ("Acelerações: 3x60m – 80, 85, 90%"). Planilhas de pista costumam colocar
+// isso como parágrafo avulso sob um subtítulo tipo "SESSÃO PRINCIPAL:", não
+// como item de lista numerada — sem esse reconhecimento extra, o tiro nunca
+// vira uma unidade registrável. Sem âncora no início de propósito, pra
+// pegar tanto "7x200m" quanto "Acelerações: 3x60m".
+const PADRAO_INTERVALO_PISTA = /\d+(?:[.,]\d+)?\s*[x×]\s*\d+(?:[.,]\d+)?\s*(km|m)\b/i;
 
 // Dada uma sessão (um DiaSemana no modo semana ou um BlocoSessao no modo
 // blocos), devolve a lista de exercícios registráveis com itemIndex 0-based:
-//  - cada bloco item-numerado ou item-lista, na ordem em que aparece;
+//  - cada bloco item-numerado (com sua linha de detalhe) ou item-lista, na
+//    ordem em que aparece;
+//  - cada parágrafo solto que pareça um tiro de pista (padrão NxDDDm);
 //  - se a sessão não tiver nenhum item desses, a própria sessão vira UMA
 //    unidade (itemIndex 0), rotulada pelo título/resumo dela.
 export function unidadesRegistraveis(sessao: DiaSemana | BlocoSessao): UnidadeRegistravel[] {
   const itens: UnidadeRegistravel[] = [];
   for (const bloco of sessao.blocos) {
-    if (bloco.tipo === "item-numerado" || bloco.tipo === "item-lista") {
+    if (bloco.tipo === "item-numerado") {
+      itens.push({ itemIndex: itens.length, rotulo: bloco.texto, detalhe: bloco.detalhe.join(" ") });
+    } else if (bloco.tipo === "item-lista") {
+      itens.push({ itemIndex: itens.length, rotulo: bloco.texto });
+    } else if (bloco.tipo === "paragrafo" && PADRAO_INTERVALO_PISTA.test(bloco.texto.trim())) {
       itens.push({ itemIndex: itens.length, rotulo: bloco.texto });
     }
   }

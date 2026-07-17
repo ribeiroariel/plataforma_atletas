@@ -2,7 +2,13 @@
 
 import { useId, useMemo, useState, useTransition } from "react";
 import { registrarExercicio, removerExercicio } from "@/lib/actions/exercicio";
-import { sugerirMetricas, type Metrica } from "@/lib/planilha/sugerirMetrica";
+import {
+  sugerirMetricas,
+  metricaServidorParaOpcao,
+  opcaoParaMetricaServidor,
+  type Metrica,
+  type OpcaoMetrica,
+} from "@/lib/planilha/sugerirMetrica";
 import { numero } from "@/lib/actions/valores";
 
 export type { Metrica };
@@ -10,12 +16,14 @@ export type RegistroExercicio = { metrica: Metrica; valor: number; data: string 
 // Mapa de registros já salvos: chave = `${sessionKey}:${itemIndex}`.
 export type RegistroMapa = Record<string, RegistroExercicio>;
 
-function rotuloMetrica(valor: Metrica, unidadeTempo: "seg" | "min"): string {
-  switch (valor) {
+function rotuloOpcao(opcao: OpcaoMetrica): string {
+  switch (opcao) {
     case "kg":
       return "Carga (kg)";
-    case "tempo":
-      return unidadeTempo === "seg" ? "Tempo (segundos)" : "Tempo (min)";
+    case "tempo_min":
+      return "Tempo (min)";
+    case "tempo_seg":
+      return "Tempo (segundos)";
     case "distancia":
       return "Distância (km)";
     case "pace":
@@ -31,20 +39,18 @@ function minutosParaPace(min: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function valorInicialTexto(inicial: RegistroExercicio | undefined, unidadeTempo: "seg" | "min"): string {
+function valorInicialTexto(inicial: RegistroExercicio | undefined, opcao: OpcaoMetrica): string {
   if (!inicial) return "";
   if (inicial.metrica === "pace") return minutosParaPace(inicial.valor);
-  if (inicial.metrica === "tempo" && unidadeTempo === "seg") {
-    return String(Math.round(inicial.valor * 60));
-  }
+  if (opcao === "tempo_seg") return String(Math.round(inicial.valor * 60));
   return String(inicial.valor).replace(".", ",");
 }
 
-// O servidor sempre trata "tempo" como minutos — quando a métrica sugerida é
+// O servidor sempre trata "tempo" como minutos — quando a opção escolhida é
 // segundos (repetições curtas, ex.: 200/300/400m), convertemos aqui antes de
 // enviar, e de volta ao reidratar o valor salvo (valorInicialTexto acima).
-function paraMinutosSeNecessario(bruto: string, metrica: Metrica, unidadeTempo: "seg" | "min"): string {
-  if (metrica !== "tempo" || unidadeTempo !== "seg") return bruto;
+function paraMinutosSeNecessario(bruto: string, opcao: OpcaoMetrica): string {
+  if (opcao !== "tempo_seg") return bruto;
   const segundos = numero(bruto);
   if (segundos === null) return bruto;
   return String(segundos / 60);
@@ -57,6 +63,7 @@ export function ExercicioRegistro({
   sessionKey,
   itemIndex,
   rotulo,
+  detalhe,
   data,
   inicial,
 }: {
@@ -64,22 +71,27 @@ export function ExercicioRegistro({
   sessionKey: string;
   itemIndex: number;
   rotulo: string;
+  detalhe?: string;
   data: string;
   inicial?: RegistroExercicio;
 }) {
-  const sugestao = useMemo(() => sugerirMetricas(rotulo), [rotulo]);
-  // Se já existe um registro salvo com uma métrica fora da sugestão atual
+  const sugestao = useMemo(() => sugerirMetricas(rotulo, detalhe), [rotulo, detalhe]);
+  const opcaoInicial = useMemo(
+    () => (inicial ? metricaServidorParaOpcao(inicial.metrica, sugestao) : undefined),
+    [inicial, sugestao],
+  );
+  // Se já existe um registro salvo com uma opção fora da sugestão atual
   // (ex.: planilha reescrita depois do registro), mantemos ela disponível
   // pra não esconder um valor já lançado.
   const opcoesDisponiveis = useMemo(() => {
-    if (inicial && !sugestao.opcoes.includes(inicial.metrica)) {
-      return [inicial.metrica, ...sugestao.opcoes];
+    if (opcaoInicial && !sugestao.opcoes.includes(opcaoInicial)) {
+      return [opcaoInicial, ...sugestao.opcoes];
     }
     return sugestao.opcoes;
-  }, [sugestao, inicial]);
+  }, [sugestao, opcaoInicial]);
 
-  const [metrica, setMetrica] = useState<Metrica>(inicial?.metrica ?? sugestao.opcoes[0]);
-  const [valorTexto, setValorTexto] = useState(() => valorInicialTexto(inicial, sugestao.unidadeTempo));
+  const [opcao, setOpcao] = useState<OpcaoMetrica>(opcaoInicial ?? sugestao.opcoes[0]);
+  const [valorTexto, setValorTexto] = useState(() => valorInicialTexto(inicial, opcaoInicial ?? sugestao.opcoes[0]));
   const [salvo, setSalvo] = useState<boolean>(!!inicial);
   const [status, setStatus] = useState<Status>("idle");
   const [mensagem, setMensagem] = useState("");
@@ -87,8 +99,8 @@ export function ExercicioRegistro({
 
   const selectId = useId();
   const inputId = useId();
-  const ehPace = metrica === "pace";
-  const ehSegundos = metrica === "tempo" && sugestao.unidadeTempo === "seg";
+  const ehPace = opcao === "pace";
+  const ehSegundos = opcao === "tempo_seg";
 
   function salvar() {
     const bruto = valorTexto.trim();
@@ -104,8 +116,8 @@ export function ExercicioRegistro({
         trainingPlanId,
         sessionKey,
         itemIndex,
-        metrica,
-        paraMinutosSeNecessario(bruto, metrica, sugestao.unidadeTempo),
+        opcaoParaMetricaServidor(opcao),
+        paraMinutosSeNecessario(bruto, opcao),
         data,
       );
       if ("erro" in r) {
@@ -152,9 +164,9 @@ export function ExercicioRegistro({
             </label>
             <select
               id={selectId}
-              value={metrica}
+              value={opcao}
               onChange={(e) => {
-                setMetrica(e.target.value as Metrica);
+                setOpcao(e.target.value as OpcaoMetrica);
                 setStatus("idle");
                 setMensagem("");
               }}
@@ -162,14 +174,14 @@ export function ExercicioRegistro({
             >
               {opcoesDisponiveis.map((valor) => (
                 <option key={valor} value={valor}>
-                  {rotuloMetrica(valor, sugestao.unidadeTempo)}
+                  {rotuloOpcao(valor)}
                 </option>
               ))}
             </select>
           </>
         ) : (
           <span className="min-h-[44px] inline-flex items-center rounded-[var(--radius-badge)] bg-track-fog/10 px-2.5 text-xs font-medium text-track-night/70">
-            {rotuloMetrica(opcoesDisponiveis[0], sugestao.unidadeTempo)}
+            {rotuloOpcao(opcoesDisponiveis[0])}
           </span>
         )}
 

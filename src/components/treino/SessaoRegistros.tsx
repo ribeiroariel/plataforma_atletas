@@ -54,6 +54,7 @@ export function SessaoRegistros({
             sessionKey={sessionKey}
             itemIndex={u.itemIndex}
             rotulo={u.rotulo}
+            detalhe={u.detalhe}
             data={data}
             inicial={registros[`${sessionKey}:${u.itemIndex}`]}
           />
