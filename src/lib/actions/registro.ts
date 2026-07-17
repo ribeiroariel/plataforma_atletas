@@ -26,35 +26,6 @@ export async function registrarTreino(
     return { erro: "A data não pode ser no futuro." };
   }
 
-  let variavel: string;
-  let unidade: string;
-  let valor: number | null;
-
-  if (tipo === "academia") {
-    variavel = "volume_carga";
-    unidade = "kg";
-    valor = numero(valorBruto);
-  } else if (tipo === "corrida" || tipo === "bicicleta") {
-    const modo = String(formData.get("modo") ?? "distancia");
-    if (modo === "pace") {
-      variavel = "pace";
-      unidade = "min/km";
-      valor = paceParaMinutos(valorBruto);
-    } else {
-      variavel = "distancia";
-      unidade = "km";
-      valor = numero(valorBruto);
-    }
-  } else {
-    variavel = "tempo";
-    unidade = "min";
-    valor = numero(valorBruto);
-  }
-
-  if (valor === null || valor <= 0) {
-    return { erro: "O valor precisa ser um número positivo." };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -64,12 +35,49 @@ export async function registrarTreino(
   const athleteId = await getAthleteId(supabase, user.id);
   if (!athleteId) return { erro: "Cadastro de atleta não encontrado." };
 
+  let linhas: { athlete_id: string; data: string; tipo: string; variavel: string; valor: number; unidade: string }[];
+
+  if (tipo === "academia" || tipo === "cardio") {
+    const variavel = tipo === "academia" ? "volume_carga" : "tempo";
+    const unidade = tipo === "academia" ? "kg" : "min";
+    const valor = numero(valorBruto);
+    if (valor === null || valor <= 0) {
+      return { erro: "O valor precisa ser um número positivo." };
+    }
+    linhas = [{ athlete_id: athleteId, data, tipo, variavel, valor, unidade }];
+  } else {
+    // corrida/bicicleta: distância é sempre obrigatória, junto com tempo OU
+    // pace — nunca só o pace isolado, que sozinho não diz nada sobre volume.
+    // O valor que faltar (pace a partir do tempo) é calculado aqui.
+    const distanciaBruta = String(formData.get("distancia") ?? "");
+    const modoSegundo = String(formData.get("modoSegundo") ?? "tempo");
+    const segundoBruto = String(formData.get("segundo") ?? "");
+
+    const distancia = numero(distanciaBruta);
+    if (distancia === null || distancia <= 0) {
+      return { erro: "Informe uma distância válida." };
+    }
+
+    let pace: number | null;
+    if (modoSegundo === "pace") {
+      pace = paceParaMinutos(segundoBruto);
+    } else {
+      const tempo = numero(segundoBruto);
+      pace = tempo !== null && tempo > 0 ? tempo / distancia : null;
+    }
+    if (pace === null || pace <= 0) {
+      return { erro: "Informe um tempo ou pace válido." };
+    }
+
+    linhas = [
+      { athlete_id: athleteId, data, tipo, variavel: "distancia", valor: distancia, unidade: "km" },
+      { athlete_id: athleteId, data, tipo, variavel: "pace", valor: pace, unidade: "min/km" },
+    ];
+  }
+
   const { error } = await supabase
     .from("training_data")
-    .upsert(
-      { athlete_id: athleteId, data, tipo, variavel, valor, unidade },
-      { onConflict: "athlete_id,data,tipo,variavel" },
-    );
+    .upsert(linhas, { onConflict: "athlete_id,data,tipo,variavel" });
 
   if (error) return { erro: "Não deu para salvar o registro. Tente de novo." };
 

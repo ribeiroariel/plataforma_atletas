@@ -220,7 +220,11 @@ async function importarArquivo(nomeArquivo) {
 
   const buffer = fs.readFileSync(caminhoCompleto);
   const caminhoStorage = `${atleta.id}/${nomeArquivo}`;
-  const modoTreino = parseTreino(buffer).tipo;
+  const treinoParseado = parseTreino(buffer);
+  const modoTreino = treinoParseado.tipo;
+  // Duração do mesociclo só faz sentido pra grade semanal (academia/cardio em
+  // ciclo) — sessões de pista (blocos) não têm um número de semanas inerente.
+  const numeroSemanas = modoTreino === "semana" ? treinoParseado.semanas.length : null;
 
   const { error: uploadErro } = await admin.storage
     .from("training-plans")
@@ -242,6 +246,7 @@ async function importarArquivo(nomeArquivo) {
         arquivo_url: caminhoStorage,
         nome_arquivo: nomeArquivo,
         modo_treino: modoTreino,
+        numero_semanas: numeroSemanas,
       },
       { onConflict: "athlete_id,nome_arquivo" },
     );
