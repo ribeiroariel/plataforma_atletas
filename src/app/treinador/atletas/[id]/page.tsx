@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
 import { TabelaComparativa } from "@/components/evolucao/TabelaComparativa";
+import { AnaliseEstatistica } from "@/components/evolucao/AnaliseEstatistica";
 import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
 
 const ICONE_POR_MODO = {
@@ -117,6 +118,8 @@ export default async function AtletaDoTreinadorPage({
 
       <TabelaComparativa dados={dados ?? []} />
 
+      <AnaliseEstatistica dados={dados ?? []} />
+
       <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
         <h2 className="font-display text-lg font-semibold">Observações do atleta</h2>
 
@@ -131,10 +134,13 @@ export default async function AtletaDoTreinadorPage({
               return (
                 <div key={plano.id} className="border-t border-white/10 pt-3 first:border-0 first:pt-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="flex items-center gap-1.5 text-sm font-medium text-white">
+                    <Link
+                      href={`/treinador/atletas/${id}/treinos/${plano.id}`}
+                      className="flex items-center gap-1.5 text-sm font-medium text-white hover:underline"
+                    >
                       <Icone className="h-4 w-4 shrink-0 text-sky-split" />
                       {nomeLegivel(plano.nome_arquivo)}
-                    </p>
+                    </Link>
                     <div className="flex shrink-0 items-center gap-1.5">
                       {status && (
                         <span
