@@ -11,14 +11,23 @@ const ICONE_POR_MODO = {
   generico: IconeAcademia,
 } as const;
 
-type Plano = { id: string; nome_arquivo: string; data_criacao: string; modo_treino: string | null; numero_semanas: number | null };
+type Plano = {
+  id: string;
+  nome_arquivo: string;
+  data_criacao: string;
+  data_inicio: string | null;
+  modo_treino: string | null;
+  numero_semanas: number | null;
+};
 
 // Só a grade semanal (academia/cardio em ciclo) tem duração inerente — sessões
-// de pista (blocos) não expiram dessa forma. dataFim = data_criacao +
+// de pista (blocos) não expiram dessa forma. dataFim = início do mesociclo +
 // numero_semanas semanas; diasRestantes negativo = mesociclo já encerrado.
+// Usa data_inicio quando o treinador já corrigiu (upload nem sempre coincide
+// com o início real), senão cai para data_criacao.
 function statusMesociclo(plano: Plano, hojeIso: string) {
   if (plano.modo_treino !== "semana" || !plano.numero_semanas) return null;
-  const fim = new Date(`${plano.data_criacao}T00:00:00Z`);
+  const fim = new Date(`${plano.data_inicio ?? plano.data_criacao}T00:00:00Z`);
   fim.setUTCDate(fim.getUTCDate() + plano.numero_semanas * 7);
   const hoje = new Date(`${hojeIso}T00:00:00Z`);
   const diasRestantes = Math.round((fim.getTime() - hoje.getTime()) / 86_400_000);
@@ -54,7 +63,7 @@ export default async function AtletaDoTreinadorPage({
 
   const { data: planos } = await supabase
     .from("training_plans")
-    .select("id, nome_arquivo, data_criacao, modo_treino, numero_semanas")
+    .select("id, nome_arquivo, data_criacao, data_inicio, modo_treino, numero_semanas")
     .eq("athlete_id", atleta.id)
     .order("data_criacao", { ascending: false });
 
@@ -92,11 +101,19 @@ export default async function AtletaDoTreinadorPage({
 
   return (
     <div className="flex flex-1 flex-col gap-6 bg-track-night px-6 py-10 text-white">
-      <div>
-        <Link href="/treinador" className="text-sm text-sky-split hover:underline">
-          ← Seus atletas
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Link href="/treinador" className="text-sm text-sky-split hover:underline">
+            ← Seus atletas
+          </Link>
+          <h1 className="mt-2 font-display text-2xl font-bold">{atleta.nome}</h1>
+        </div>
+        <Link
+          href={`/treinador/atletas/${id}/calendario`}
+          className="rounded-[var(--radius-badge)] border border-white/20 bg-white px-3 py-1.5 text-sm font-medium text-track-night hover:bg-lane-chalk"
+        >
+          Ver calendário de treinos
         </Link>
-        <h1 className="mt-2 font-display text-2xl font-bold">{atleta.nome}</h1>
       </div>
 
       {mesocicloAtual && planoAtual && mesocicloAtual.diasRestantes <= 7 && (
