@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { registrarExercicio, removerExercicio } from "@/lib/actions/exercicio";
 import {
   sugerirMetricas,
@@ -102,8 +102,27 @@ export function ExercicioRegistro({
   const ehPace = opcao === "pace";
   const ehSegundos = opcao === "tempo_seg";
 
-  function salvar() {
-    const bruto = valorTexto.trim();
+  // Autosave com debounce: salva ~800ms depois da última tecla, além do
+  // onBlur/Enter já existentes. Sem isso, fechar o app/trocar de aba no meio
+  // do treino sem "sair" do campo (ex.: apertar o botão de home do celular)
+  // podia perder o valor digitado — o blur nem sempre dispara nesses casos.
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  // Aceita um valor explícito (usado pelo autosave, que dispara antes do
+  // estado `valorTexto` da renderização atual refletir a tecla que acabou
+  // de ser digitada) — sem isso o debounce salvaria sempre o valor de uma
+  // tecla atrás.
+  function salvar(valorParaSalvar?: string) {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    const bruto = (valorParaSalvar ?? valorTexto).trim();
     if (!bruto) {
       // Campo vazio: se havia algo salvo, tratamos como limpar; senão, ignora.
       if (salvo) limpar();
@@ -195,13 +214,16 @@ export function ExercicioRegistro({
           value={valorTexto}
           placeholder={ehPace ? "mm:ss" : ehSegundos ? "ex.: 45" : "0"}
           onChange={(e) => {
-            setValorTexto(e.target.value);
+            const novoValor = e.target.value;
+            setValorTexto(novoValor);
             if (status !== "idle") {
               setStatus("idle");
               setMensagem("");
             }
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            timeoutRef.current = setTimeout(() => salvar(novoValor), 800);
           }}
-          onBlur={salvar}
+          onBlur={() => salvar()}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -213,7 +235,7 @@ export function ExercicioRegistro({
 
         <button
           type="button"
-          onClick={salvar}
+          onClick={() => salvar()}
           disabled={pendente}
           aria-label="Salvar exercício"
           className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--radius-badge)] bg-stadium-blue px-3 text-sm font-medium text-white transition-colors hover:bg-deep-lane disabled:opacity-50"

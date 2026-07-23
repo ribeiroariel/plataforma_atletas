@@ -100,6 +100,17 @@ function normalizar(texto: string) {
     .toLowerCase();
 }
 
+// Linha tipo "Cardio: Caminhada em esteira – 30min | 6-7km/h | ..." colada
+// logo após uma lista numerada de musculação (sem numeração própria). Sem
+// esse reconhecimento, ela cai no fallback de "não bate com nada" e vira
+// detalhe do ÚLTIMO exercício numerado (ex.: grudada em "Supino inclinado –
+// halteres"), fazendo o cardio virar texto descritivo de outro exercício em
+// vez de um item registrável próprio — bug real visto nas planilhas da
+// Bruna. Allowlist deliberadamente restrita (só atividades, não qualquer
+// "Rótulo:") pra não confundir com notas de técnica tipo "Técnica: cotovelos
+// altos...", que devem continuar como detalhe do exercício anterior.
+const RE_ATIVIDADE_EXTRA = /^(cardio|sprint|corrida|caminhada|bicicleta|esteira)\s*:\s*(.+)/i;
+
 export function parseCelula(textoOriginal: string): BlocoTexto[] {
   const linhas = String(textoOriginal ?? "")
     .replace(/\r\n/g, "\n")
@@ -115,6 +126,7 @@ export function parseCelula(textoOriginal: string): BlocoTexto[] {
     const itemLista = linha.match(/^[•\-]\s+(.*)/);
     const total = /^total\s*:/i.test(linha);
     const subtitulo = linha.length < 40 && /:$/.test(linha) && !/\d/.test(linha);
+    const atividadeExtra = RE_ATIVIDADE_EXTRA.test(linha);
 
     if (total) {
       blocos.push({ tipo: "total", texto: linha });
@@ -124,6 +136,8 @@ export function parseCelula(textoOriginal: string): BlocoTexto[] {
       blocos.push({ tipo: "item-lista", texto: itemLista[1] });
     } else if (subtitulo) {
       blocos.push({ tipo: "subtitulo", texto: linha.replace(/:$/, "") });
+    } else if (atividadeExtra) {
+      blocos.push({ tipo: "item-lista", texto: linha });
     } else {
       const ultimo = blocos[blocos.length - 1];
       if (ultimo?.tipo === "item-numerado") {
