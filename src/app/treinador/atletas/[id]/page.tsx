@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
 import { TabelaComparativa } from "@/components/evolucao/TabelaComparativa";
+import { ProgressoExercicios } from "@/components/evolucao/ProgressoExercicios";
+import { buscarProgressoExercicios } from "@/lib/planilha/progressoExercicios";
 import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
 
 const ICONE_POR_MODO = {
@@ -60,6 +62,8 @@ export default async function AtletaDoTreinadorPage({
     .from("training_data")
     .select("data, tipo, variavel, valor")
     .eq("athlete_id", atleta.id);
+
+  const progressoExercicios = await buscarProgressoExercicios(supabase, atleta.id);
 
   const { data: planos } = await supabase
     .from("training_plans")
@@ -133,6 +137,8 @@ export default async function AtletaDoTreinadorPage({
       <EvolucaoDashboard dados={dados ?? []} />
 
       <TabelaComparativa dados={dados ?? []} />
+
+      <ProgressoExercicios dados={progressoExercicios} />
 
       <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
         <h2 className="font-display text-lg font-semibold">Observações do atleta</h2>
