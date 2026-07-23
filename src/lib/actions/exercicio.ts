@@ -38,6 +38,11 @@ function ehMetrica(v: string): v is Metrica {
 // Busca todos os exercise_logs do atleta com aquela data e métrica; se houver
 // >=1, faz upsert em training_data com SOMA (ou MÉDIA para pace); se sobrar 0
 // (o último foi removido), apaga a linha correspondente de training_data.
+// recalcularAgregado soma TODOS os exercise_logs do atleta naquele dia/
+// métrica, sem se importar com item_index nem serie — então múltiplas
+// séries do mesmo exercício (cada uma sua própria linha) já entram
+// corretamente na soma de volume do dia, sem precisar de nenhuma mudança
+// aqui: mais linhas de série = mais termos na soma = volume real.
 async function recalcularAgregado(
   supabase: SupabaseClient,
   athleteId: string,
@@ -88,6 +93,7 @@ export async function registrarExercicio(
   trainingPlanId: string,
   sessionKey: string,
   itemIndex: number,
+  serie: number,
   metrica: string,
   valorBruto: string,
   data: string,
@@ -95,6 +101,7 @@ export async function registrarExercicio(
   if (!trainingPlanId) return { erro: "Treino inválido." };
   if (!sessionKey || sessionKey.length > 60) return { erro: "Sessão inválida." };
   if (!Number.isInteger(itemIndex) || itemIndex < 0) return { erro: "Exercício inválido." };
+  if (!Number.isInteger(serie) || serie < 1 || serie > 20) return { erro: "Série inválida." };
   if (!ehMetrica(metrica)) return { erro: "Escolha uma métrica válida." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { erro: "Informe uma data válida." };
 
@@ -121,6 +128,7 @@ export async function registrarExercicio(
     .eq("training_plan_id", trainingPlanId)
     .eq("session_key", sessionKey)
     .eq("item_index", itemIndex)
+    .eq("serie", serie)
     .maybeSingle();
 
   const agora = new Date().toISOString();
@@ -130,12 +138,13 @@ export async function registrarExercicio(
       training_plan_id: trainingPlanId,
       session_key: sessionKey,
       item_index: itemIndex,
+      serie,
       metrica,
       valor,
       data,
       updated_at: agora,
     },
-    { onConflict: "training_plan_id,session_key,item_index" },
+    { onConflict: "training_plan_id,session_key,item_index,serie" },
   );
 
   if (error) {
@@ -157,10 +166,12 @@ export async function removerExercicio(
   trainingPlanId: string,
   sessionKey: string,
   itemIndex: number,
+  serie: number,
 ): Promise<Resultado> {
   if (!trainingPlanId) return { erro: "Treino inválido." };
   if (!sessionKey || sessionKey.length > 60) return { erro: "Sessão inválida." };
   if (!Number.isInteger(itemIndex) || itemIndex < 0) return { erro: "Exercício inválido." };
+  if (!Number.isInteger(serie) || serie < 1 || serie > 20) return { erro: "Série inválida." };
 
   const supabase = await createClient();
   const {
@@ -178,6 +189,7 @@ export async function removerExercicio(
     .eq("training_plan_id", trainingPlanId)
     .eq("session_key", sessionKey)
     .eq("item_index", itemIndex)
+    .eq("serie", serie)
     .maybeSingle();
 
   if (!log) return { ok: true }; // nada para remover
@@ -187,7 +199,8 @@ export async function removerExercicio(
     .delete()
     .eq("training_plan_id", trainingPlanId)
     .eq("session_key", sessionKey)
-    .eq("item_index", itemIndex);
+    .eq("item_index", itemIndex)
+    .eq("serie", serie);
 
   if (error) {
     console.error("[exercicio] removerExercicio delete", error);

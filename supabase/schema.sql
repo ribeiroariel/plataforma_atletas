@@ -764,6 +764,31 @@ create table if not exists public.exercise_logs (
 );
 create index if not exists exercise_logs_athlete_data_idx on public.exercise_logs (athlete_id, data);
 
+-- serie: número da série de carga dentro do exercício (ex.: série 1, 2, 3
+-- do supino). Default 1 mantém compatibilidade com os registros antigos (1
+-- valor por exercício = "série 1"). Só faz sentido de verdade pra
+-- metrica='kg' — as outras métricas continuam sempre serie=1.
+alter table public.exercise_logs
+  add column if not exists serie integer not null default 1;
+
+-- Troca a constraint unique pra incluir serie, permitindo várias séries do
+-- mesmo exercício na mesma sessão/data. Nome do drop é o gerado
+-- automaticamente pelo Postgres pra unique(training_plan_id, session_key,
+-- item_index) declarada inline acima.
+alter table public.exercise_logs
+  drop constraint if exists exercise_logs_training_plan_id_session_key_item_index_key;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'exercise_logs_plano_sessao_item_serie_unique'
+  ) then
+    alter table public.exercise_logs
+      add constraint exercise_logs_plano_sessao_item_serie_unique
+      unique (training_plan_id, session_key, item_index, serie);
+  end if;
+end $$;
+
 alter table public.exercise_logs enable row level security;
 alter table public.exercise_logs force row level security;
 

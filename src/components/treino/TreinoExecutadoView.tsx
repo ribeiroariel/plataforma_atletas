@@ -4,7 +4,7 @@ import {
   type BlocoSessao,
   unidadesRegistraveis,
 } from "@/lib/planilha/parseTreino";
-import type { RegistroExercicio, RegistroMapa } from "./ExercicioRegistro";
+import { registrosDoExercicio, type RegistroExercicio, type RegistroMapa } from "./ExercicioRegistro";
 import { BlocosTextoView } from "./BlocosTextoView";
 
 // Visão somente-leitura do que o atleta efetivamente registrou numa sessão —
@@ -20,8 +20,7 @@ function minutosParaPace(min: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function valorFormatado(registro: RegistroExercicio | undefined): string {
-  if (!registro) return "—";
+function valorUnico(registro: RegistroExercicio): string {
   switch (registro.metrica) {
     case "kg":
       return `${registro.valor} kg`;
@@ -32,6 +31,20 @@ function valorFormatado(registro: RegistroExercicio | undefined): string {
     case "tempo":
       return `${registro.valor} min`;
   }
+}
+
+// Carga (kg) pode ter várias séries — mostra todas juntas, na ordem, ex.
+// "80, 85, 90 kg". Qualquer outra métrica continua sendo um valor só.
+function valorFormatado(registrosPorSerie: Record<number, RegistroExercicio>): string {
+  const series = Object.keys(registrosPorSerie)
+    .map(Number)
+    .sort((a, b) => a - b);
+  if (series.length === 0) return "—";
+  if (series.length === 1) return valorUnico(registrosPorSerie[series[0]]);
+
+  const unidade = registrosPorSerie[series[0]].metrica === "kg" ? "kg" : "";
+  const valores = series.map((s) => registrosPorSerie[s].valor).join(", ");
+  return unidade ? `${valores} ${unidade}` : valores;
 }
 
 function SessaoExecutada({
@@ -74,7 +87,7 @@ function SessaoExecutada({
             <li key={u.itemIndex} className="flex items-center justify-between gap-3 text-sm">
               <span className="min-w-0 flex-1 break-words text-track-night/80">{u.rotulo}</span>
               <span className="tabular-data shrink-0 font-medium text-track-night">
-                {valorFormatado(registros[`${chave}:${u.itemIndex}`])}
+                {valorFormatado(registrosDoExercicio(registros, chave, u.itemIndex))}
               </span>
             </li>
           ))}
