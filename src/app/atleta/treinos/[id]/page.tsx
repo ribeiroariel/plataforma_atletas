@@ -54,12 +54,12 @@ export default async function TreinoPage({
 
   const { data: logs } = await supabase
     .from("exercise_logs")
-    .select("session_key, item_index, metrica, valor, data")
+    .select("session_key, item_index, serie, metrica, valor, data")
     .eq("training_plan_id", plano.id);
 
   const registros: RegistroMapa = {};
   for (const l of logs ?? []) {
-    registros[`${l.session_key}:${l.item_index}`] = {
+    registros[`${l.session_key}:${l.item_index}:${l.serie}`] = {
       metrica: l.metrica as RegistroExercicio["metrica"],
       valor: Number(l.valor),
       data: l.data,

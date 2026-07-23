@@ -66,6 +66,22 @@ create table if not exists public.training_plans (
 alter table public.training_plans
   add column if not exists modo_treino text check (modo_treino in ('semana', 'blocos', 'generico'));
 
+-- numero_semanas: só preenchido quando modo_treino = 'semana' (calculado no
+-- import a partir do parseTreino). data_criacao + numero_semanas*7 dias =
+-- fim estimado do mesociclo, usado pro alerta de "planilha acabando" no
+-- painel do treinador.
+alter table public.training_plans
+  add column if not exists numero_semanas integer;
+
+-- data_inicio: quando a Semana 1 realmente começa, editável pelo treinador.
+-- Default nulo — quando nulo, o app usa data_criacao (data do upload) como
+-- aproximação. Existe porque o upload nem sempre coincide com o início real
+-- do mesociclo (ex.: treinador sobe o plano na quinta pra começar só
+-- segunda seguinte); sem isso, o calendário do treinador mapearia os dias
+-- da semana errado.
+alter table public.training_plans
+  add column if not exists data_inicio date;
+
 -- Permite reimportar o mesmo arquivo (mesmo atleta + mesmo nome) sem duplicar
 -- linha — o script de import (Etapa 4) faz upsert nessa chave.
 do $$
@@ -343,6 +359,29 @@ create policy training_plans_select_coach_linked
   on public.training_plans for select
   to authenticated
   using (
+    athlete_id in (
+      select ca.athlete_id
+      from public.coach_athletes ca
+      where ca.coach_id = auth.uid()
+    )
+  );
+
+-- UPDATE: treinador vinculado pode editar o plano (hoje só data_inicio, via
+-- server action dedicada — usada pelo calendário do treinador pra corrigir
+-- quando a Semana 1 realmente começou, quando o upload não coincide com o
+-- início real do mesociclo). Única escrita de coach nessa tabela hoje.
+drop policy if exists training_plans_update_coach_linked on public.training_plans;
+create policy training_plans_update_coach_linked
+  on public.training_plans for update
+  to authenticated
+  using (
+    athlete_id in (
+      select ca.athlete_id
+      from public.coach_athletes ca
+      where ca.coach_id = auth.uid()
+    )
+  )
+  with check (
     athlete_id in (
       select ca.athlete_id
       from public.coach_athletes ca
@@ -756,6 +795,31 @@ create table if not exists public.exercise_logs (
   unique (training_plan_id, session_key, item_index)
 );
 create index if not exists exercise_logs_athlete_data_idx on public.exercise_logs (athlete_id, data);
+
+-- serie: número da série de carga dentro do exercício (ex.: série 1, 2, 3
+-- do supino). Default 1 mantém compatibilidade com os registros antigos (1
+-- valor por exercício = "série 1"). Só faz sentido de verdade pra
+-- metrica='kg' — as outras métricas continuam sempre serie=1.
+alter table public.exercise_logs
+  add column if not exists serie integer not null default 1;
+
+-- Troca a constraint unique pra incluir serie, permitindo várias séries do
+-- mesmo exercício na mesma sessão/data. Nome do drop é o gerado
+-- automaticamente pelo Postgres pra unique(training_plan_id, session_key,
+-- item_index) declarada inline acima.
+alter table public.exercise_logs
+  drop constraint if exists exercise_logs_training_plan_id_session_key_item_index_key;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'exercise_logs_plano_sessao_item_serie_unique'
+  ) then
+    alter table public.exercise_logs
+      add constraint exercise_logs_plano_sessao_item_serie_unique
+      unique (training_plan_id, session_key, item_index, serie);
+  end if;
+end $$;
 
 alter table public.exercise_logs enable row level security;
 alter table public.exercise_logs force row level security;

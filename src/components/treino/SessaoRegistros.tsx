@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import type { UnidadeRegistravel } from "@/lib/planilha/parseTreino";
-import { ExercicioRegistro, type RegistroMapa } from "./ExercicioRegistro";
+import { ExercicioRegistro, registrosDoExercicio, type RegistroMapa } from "./ExercicioRegistro";
 
 function hojeIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -54,8 +54,9 @@ export function SessaoRegistros({
             sessionKey={sessionKey}
             itemIndex={u.itemIndex}
             rotulo={u.rotulo}
+            detalhe={u.detalhe}
             data={data}
-            inicial={registros[`${sessionKey}:${u.itemIndex}`]}
+            registrosSalvos={registrosDoExercicio(registros, sessionKey, u.itemIndex)}
           />
         ))}
       </ul>

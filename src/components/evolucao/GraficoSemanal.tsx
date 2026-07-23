@@ -4,6 +4,8 @@ import type { ComponentType } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -45,11 +47,13 @@ export function GraficoSemanal({
   unidade,
   serie,
   Icone,
+  tipo = "area",
 }: {
   titulo: string;
   unidade: string;
   serie: PontoSemana[];
   Icone?: ComponentType<{ className?: string }>;
+  tipo?: "area" | "barra";
 }) {
   const semDados = serie.length === 0;
 
@@ -66,42 +70,56 @@ export function GraficoSemanal({
       ) : (
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={serie} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-              <defs>
-                <linearGradient id={`fill-${titulo}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={AZUL} stopOpacity={0.12} />
-                  <stop offset="100%" stopColor={AZUL} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="#90A4B8" strokeOpacity={0.2} />
-              <XAxis
-                dataKey="semana"
-                tickFormatter={formatarSemana}
-                tick={{ fontSize: 11, fill: "#90A4B8" }}
-                axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#90A4B8" }}
-                axisLine={false}
-                tickLine={false}
-                width={40}
-              />
-              <Tooltip
-                content={<TooltipPersonalizado unidade={unidade} />}
-                cursor={{ stroke: "#90A4B8", strokeWidth: 1 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="total"
-                stroke={AZUL}
-                strokeWidth={2}
-                fill={`url(#fill-${titulo})`}
-                dot={{ r: 3, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
-                activeDot={{ r: 5, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
-            </AreaChart>
+            {tipo === "barra" ? (
+              <BarChart data={serie} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="#90A4B8" strokeOpacity={0.2} />
+                <XAxis
+                  dataKey="semana"
+                  tickFormatter={formatarSemana}
+                  tick={{ fontSize: 11, fill: "#90A4B8" }}
+                  axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 11, fill: "#90A4B8" }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip
+                  content={<TooltipPersonalizado unidade={unidade} />}
+                  cursor={{ fill: AZUL, fillOpacity: 0.06 }}
+                />
+                <Bar dataKey="total" fill={AZUL} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+              </BarChart>
+            ) : (
+              <AreaChart data={serie} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={`fill-${titulo}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={AZUL} stopOpacity={0.12} />
+                    <stop offset="100%" stopColor={AZUL} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="#90A4B8" strokeOpacity={0.2} />
+                <XAxis
+                  dataKey="semana"
+                  tickFormatter={formatarSemana}
+                  tick={{ fontSize: 11, fill: "#90A4B8" }}
+                  axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 11, fill: "#90A4B8" }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip
+                  content={<TooltipPersonalizado unidade={unidade} />}
+                  cursor={{ stroke: "#90A4B8", strokeWidth: 1 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke={AZUL}
+                  strokeWidth={2}
+                  fill={`url(#fill-${titulo})`}
+                  dot={{ r: 3, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            )}
           </ResponsiveContainer>
         </div>
       )}
