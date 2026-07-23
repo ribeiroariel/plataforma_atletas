@@ -56,7 +56,7 @@ export function EvolucaoDashboard({ dados }: { dados: LinhaTrainingData[] }) {
             className={`rounded-[var(--radius-badge)] px-3 py-1.5 text-sm font-medium transition-colors ${
               periodo === op.valor
                 ? "bg-stadium-blue text-white"
-                : "border border-track-fog/40 text-track-night hover:bg-white"
+                : "border border-track-fog/40 bg-white text-track-night hover:bg-lane-chalk"
             }`}
           >
             {op.rotulo}
