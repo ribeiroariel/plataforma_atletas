@@ -157,10 +157,20 @@ function linhasDaAba(buffer: Buffer): string[][] {
   return XLSX.utils.sheet_to_json<string[]>(primeiraAba, { header: 1, defval: "" });
 }
 
-function ehGradeDeSemana(linhas: string[][]): boolean {
-  const cabecalho = linhas[1]?.slice(1).map(normalizar) ?? [];
-  const acertos = DIAS_SEMANA.filter((d) => cabecalho.includes(d));
-  return acertos.length >= 5;
+// A maioria das planilhas tem o cabeçalho (Segunda..Domingo) logo na linha
+// 1 (linha 0 é o título), mas algumas têm uma linha extra de metadados no
+// meio (ex.: "FCmáx: 207 bpm | Z1: ..." antes do cabeçalho) — procura nas
+// primeiras linhas em vez de exigir posição fixa, senão a planilha inteira
+// cai no modo "generico" por causa de uma linha a mais no topo.
+const LINHAS_MAX_BUSCA_CABECALHO = 6;
+
+function indiceCabecalhoSemana(linhas: string[][]): number {
+  for (let i = 1; i < Math.min(linhas.length, LINHAS_MAX_BUSCA_CABECALHO); i++) {
+    const cabecalho = linhas[i]?.slice(1).map(normalizar) ?? [];
+    const acertos = DIAS_SEMANA.filter((d) => cabecalho.includes(d));
+    if (acertos.length >= 5) return i;
+  }
+  return -1;
 }
 
 function ehTabelaDeBlocos(linhas: string[][]): number {
@@ -170,14 +180,14 @@ function ehTabelaDeBlocos(linhas: string[][]): number {
   });
 }
 
-function parseGradeDeSemana(linhas: string[][]): ModoSemana {
+function parseGradeDeSemana(linhas: string[][], indiceCabecalho: number): ModoSemana {
   const titulo = String(linhas[0]?.[0] ?? "Plano de treino");
-  const cabecalho = linhas[1] ?? [];
+  const cabecalho = linhas[indiceCabecalho] ?? [];
   const semanas: SemanaTreino[] = [];
   let legenda: string | undefined;
   let indiceSemana = 0;
 
-  for (let i = 2; i < linhas.length; i++) {
+  for (let i = indiceCabecalho + 1; i < linhas.length; i++) {
     const linha = linhas[i];
     const rotulo = String(linha[0] ?? "").trim();
     if (!rotulo) continue;
@@ -240,8 +250,9 @@ function parseGenerico(linhas: string[][]): ModoGenerico {
 export function parseTreino(buffer: Buffer): TreinoParseado {
   const linhas = linhasDaAba(buffer);
 
-  if (ehGradeDeSemana(linhas)) {
-    return parseGradeDeSemana(linhas);
+  const indiceCabecalhoSemanal = indiceCabecalhoSemana(linhas);
+  if (indiceCabecalhoSemanal >= 0) {
+    return parseGradeDeSemana(linhas, indiceCabecalhoSemanal);
   }
 
   const indiceCabecalhoBlocos = ehTabelaDeBlocos(linhas);
