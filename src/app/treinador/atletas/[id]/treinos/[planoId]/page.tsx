@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { parseTreino } from "@/lib/planilha/parseTreino";
+import { parseTreino, type TreinoParseado } from "@/lib/planilha/parseTreino";
 import { TreinoExecutadoView } from "@/components/treino/TreinoExecutadoView";
 import type { RegistroExercicio, RegistroMapa } from "@/components/treino/ExercicioRegistro";
 
@@ -63,7 +63,21 @@ export default async function TreinoExecutadoPage({
     };
   }
 
-  const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
+  // parseTreino nunca deve derrubar a página inteira: uma planilha que ele
+  // não consiga interpretar (formato inesperado, arquivo corrompido) é um
+  // problema pontual daquele plano, não motivo pra um erro 500 sem
+  // diagnóstico nos logs de produção.
+  let treino: TreinoParseado | null = null;
+  if (arquivo) {
+    try {
+      treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
+    } catch (erro) {
+      console.error(
+        `Falha ao interpretar a planilha do plano ${plano.id} (${plano.nome_arquivo}):`,
+        erro,
+      );
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6 bg-track-night px-6 py-10 text-white">
