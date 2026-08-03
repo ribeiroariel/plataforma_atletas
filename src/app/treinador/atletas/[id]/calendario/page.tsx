@@ -97,7 +97,16 @@ export default async function CalendarioPage({
 
     const { data: arquivo } = await supabase.storage.from("training-plans").download(plano.arquivo_url);
     if (!arquivo) continue;
-    const treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
+
+    // Um plano que o parser não consiga interpretar não pode derrubar o
+    // calendário inteiro (todos os outros planos do atleta) — só pula esse.
+    let treino;
+    try {
+      treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
+    } catch (erro) {
+      console.error(`Falha ao interpretar a planilha do plano ${plano.id} (${plano.nome_arquivo}):`, erro);
+      continue;
+    }
     if (treino.tipo !== "semana") continue;
 
     const sessoes = mapearSessoesParaCalendario(treino as ModoSemana, dataInicio);
