@@ -20,7 +20,7 @@ export function CadastroForm() {
           name="nome"
           required
           autoComplete="name"
-          className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+          className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3.5 py-3 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
         />
       </label>
 
@@ -31,7 +31,7 @@ export function CadastroForm() {
           name="email"
           required
           autoComplete="email"
-          className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+          className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3.5 py-3 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
         />
       </label>
 
@@ -78,7 +78,7 @@ export function CadastroForm() {
       <button
         type="submit"
         disabled={senhasNaoConferem}
-        className="mt-2 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane disabled:opacity-50"
+        className="mt-2 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-tartan-escuro disabled:opacity-50"
       >
         Criar conta
       </button>

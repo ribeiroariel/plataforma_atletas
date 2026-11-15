@@ -4,7 +4,7 @@ import {
   type BlocoSessao,
   unidadesRegistraveis,
 } from "@/lib/planilha/parseTreino";
-import { registrosDoExercicio, type RegistroExercicio, type RegistroMapa } from "./ExercicioRegistro";
+import { registrosDoExercicio, type RegistroExercicio, type RegistroMapa } from "@/lib/treino/registros";
 import { BlocosTextoView } from "./BlocosTextoView";
 
 // Visão somente-leitura do que o atleta efetivamente registrou numa sessão —

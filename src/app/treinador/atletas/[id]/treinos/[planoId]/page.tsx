@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseTreino } from "@/lib/planilha/parseTreino";
 import { TreinoExecutadoView } from "@/components/treino/TreinoExecutadoView";
-import type { RegistroExercicio, RegistroMapa } from "@/components/treino/ExercicioRegistro";
+import type { RegistroExercicio, RegistroMapa } from "@/lib/treino/registros";
 
 function tituloLegivel(nomeArquivo: string) {
   return nomeArquivo

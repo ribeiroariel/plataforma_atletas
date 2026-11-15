@@ -2,28 +2,32 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseTreino } from "@/lib/planilha/parseTreino";
-import { TreinoView } from "@/components/treino/TreinoView";
-import type { RegistroExercicio, RegistroMapa } from "@/components/treino/ExercicioRegistro";
+import { gruposDaSemana, gruposDosBlocos } from "@/lib/treino/montarSessoes";
+import type { RegistroExercicio, RegistroMapa } from "@/lib/treino/registros";
+import { dataCurta, hojeBrasilIso, tituloDoPlano } from "@/lib/datas";
+import { TreinoInterativo } from "@/components/treino/TreinoInterativo";
 import { ObservacaoForm } from "@/components/treino/ObservacaoForm";
 
-function tituloLegivel(nomeArquivo: string) {
-  return nomeArquivo
-    .replace(/\.xlsx$/i, "")
-    .replace(/[_-]+/g, " ")
-    .trim();
-}
+const ROTULO_MODO: Record<string, string> = {
+  semana: "Mesociclo",
+  blocos: "Sessão de pista",
+  generico: "Plano de treino",
+};
 
 export default async function TreinoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ sessao?: string }>;
 }) {
   const { id } = await params;
+  const { sessao } = await searchParams;
   const supabase = await createClient();
 
   const { data: plano } = await supabase
     .from("training_plans")
-    .select("id, athlete_id, nome_arquivo, arquivo_url, data_criacao")
+    .select("id, athlete_id, nome_arquivo, arquivo_url, data_criacao, data_inicio")
     .eq("id", id)
     .single();
 
@@ -31,31 +35,23 @@ export default async function TreinoPage({
     notFound();
   }
 
-  const { data: arquivo } = await supabase.storage
-    .from("training-plans")
-    .download(plano.arquivo_url);
-
-  const { data: downloadUrl } = await supabase.storage
-    .from("training-plans")
-    .createSignedUrl(plano.arquivo_url, 300);
-
-  const { data: observacoes } = await supabase
-    .from("observations")
-    .select("id, texto, data")
-    .eq("training_plan_id", plano.id)
-    .order("data", { ascending: false });
-
-  const { data: conclusoes } = await supabase
-    .from("training_completions")
-    .select("session_key")
-    .eq("training_plan_id", plano.id);
+  const [{ data: arquivo }, { data: downloadUrl }, { data: observacoes }, { data: conclusoes }, { data: logs }] =
+    await Promise.all([
+      supabase.storage.from("training-plans").download(plano.arquivo_url),
+      supabase.storage.from("training-plans").createSignedUrl(plano.arquivo_url, 300),
+      supabase
+        .from("observations")
+        .select("id, texto, data")
+        .eq("training_plan_id", plano.id)
+        .order("data", { ascending: false }),
+      supabase.from("training_completions").select("session_key").eq("training_plan_id", plano.id),
+      supabase
+        .from("exercise_logs")
+        .select("session_key, item_index, serie, metrica, valor, data")
+        .eq("training_plan_id", plano.id),
+    ]);
 
   const concluidas = (conclusoes ?? []).map((c) => c.session_key);
-
-  const { data: logs } = await supabase
-    .from("exercise_logs")
-    .select("session_key, item_index, serie, metrica, valor, data")
-    .eq("training_plan_id", plano.id);
 
   const registros: RegistroMapa = {};
   for (const l of logs ?? []) {
@@ -67,59 +63,113 @@ export default async function TreinoPage({
   }
 
   const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
+  const grupos =
+    treino?.tipo === "semana"
+      ? gruposDaSemana(treino, plano.data_inicio ?? plano.data_criacao)
+      : treino?.tipo === "blocos"
+        ? gruposDosBlocos(treino)
+        : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 bg-lane-chalk px-4 py-6 sm:px-6 sm:py-10">
-      <div>
-        <Link href="/atleta" className="text-sm text-stadium-blue hover:underline">
-          ← Voltar
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-2xl font-bold text-track-night">
-            {tituloLegivel(plano.nome_arquivo)}
-          </h1>
-          {downloadUrl?.signedUrl && (
-            <a
-              href={downloadUrl.signedUrl}
-              className="shrink-0 rounded-[var(--radius-badge)] border border-track-fog/40 px-3 py-1.5 text-sm text-track-night hover:bg-white"
+    <div className="flex flex-1 flex-col bg-bone">
+      <header className="raias bg-ink px-4 pt-5 pb-6 text-white sm:px-8 sm:pt-8">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/atleta"
+              className="rotulo -ml-2 flex min-h-[40px] items-center gap-1.5 rounded-full px-2 text-white/60 transition-colors hover:text-white"
             >
-              Baixar .xlsx
-            </a>
-          )}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Hoje
+            </Link>
+            {downloadUrl?.signedUrl && (
+              <a
+                href={downloadUrl.signedUrl}
+                className="rotulo flex min-h-[40px] items-center gap-1.5 rounded-full border border-white/20 px-3 text-white/70 transition-colors hover:border-white/50 hover:text-white"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                  <path d="M12 4v11M7 11l5 5 5-5M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Planilha
+              </a>
+            )}
+          </div>
+          <div>
+            <p className="rotulo text-tartan">
+              {ROTULO_MODO[treino?.tipo ?? "generico"]} · desde {dataCurta(plano.data_inicio ?? plano.data_criacao)}
+            </p>
+            <h1 className="font-display mt-1 text-4xl leading-[0.98] font-black break-words uppercase sm:text-5xl">
+              {tituloDoPlano(plano.nome_arquivo)}
+            </h1>
+            {treino?.tipo === "blocos" && treino.objetivo && (
+              <p className="mt-2 max-w-xl text-sm text-white/60">{treino.objetivo}</p>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
 
-      {treino ? (
-        <TreinoView
-          treino={treino}
-          trainingPlanId={plano.id}
-          concluidas={concluidas}
-          registros={registros}
-        />
-      ) : (
-        <p className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white px-4 py-6 text-sm text-track-fog">
-          Não foi possível carregar o conteúdo desse treino agora.
-        </p>
-      )}
-
-      <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
-        <h2 className="font-display text-base font-semibold text-track-night">
-          Suas observações
-        </h2>
-
-        {observacoes && observacoes.length > 0 && (
-          <ul className="flex flex-col gap-2 border-b border-track-fog/15 pb-3">
-            {observacoes.map((obs) => (
-              <li key={obs.id} className="text-sm text-track-night/90">
-                <span className="tabular-data mr-2 text-xs text-track-fog">{obs.data}</span>
-                {obs.texto}
-              </li>
-            ))}
-          </ul>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-8 sm:py-8">
+        {grupos ? (
+          <TreinoInterativo
+            planoId={plano.id}
+            grupos={grupos}
+            registrosIniciais={registros}
+            concluidasIniciais={concluidas}
+            sessaoInicial={sessao}
+            hoje={hojeBrasilIso()}
+          />
+        ) : treino?.tipo === "generico" ? (
+          <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-ash">
+            <table className="w-full text-left text-sm">
+              <tbody>
+                {treino.linhas.map((linha, i) => (
+                  <tr key={i} className="border-b border-ash last:border-0">
+                    {linha.map((celula, j) => (
+                      <td key={j} className="px-4 py-2.5 align-top text-ink/85">
+                        {celula}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-white px-5 py-8 text-center text-sm text-cinza ring-1 ring-ash">
+            Não foi possível carregar o conteúdo desse treino agora. Tente de novo em instantes.
+          </p>
         )}
 
-        <ObservacaoForm trainingPlanId={plano.id} />
-      </section>
+        {treino?.tipo === "semana" && treino.legenda && (
+          <p className="tabular-data rounded-xl bg-white px-4 py-3 text-xs leading-relaxed text-ink/60 ring-1 ring-ash">
+            {treino.legenda}
+          </p>
+        )}
+
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="rotulo text-ink">Recado para o treinador</h2>
+            <span aria-hidden className="h-px flex-1 bg-ash" />
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-ash sm:p-5">
+            <ObservacaoForm trainingPlanId={plano.id} />
+          </div>
+
+          {observacoes && observacoes.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {observacoes.map((obs) => (
+                <li key={obs.id} className="flex gap-3 rounded-xl bg-white/60 px-4 py-3 text-sm text-ink/85">
+                  <span className="tabular-data shrink-0 pt-0.5 text-[11px] text-cinza">{dataCurta(obs.data)}</span>
+                  <span className="min-w-0 break-words">{obs.texto}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

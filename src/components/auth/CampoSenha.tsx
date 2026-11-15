@@ -33,7 +33,7 @@ export function CampoSenha({
           autoComplete={autoComplete}
           value={value}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-          className="w-full rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 pr-10 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+          className="w-full rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3.5 py-3 pr-10 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
         />
         <button
           type="button"

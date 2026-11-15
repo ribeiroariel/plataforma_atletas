@@ -1,3 +1,4 @@
+import { AuthMoldura } from "@/components/auth/AuthMoldura";
 import Link from "next/link";
 import { login } from "@/lib/actions/auth";
 import { CampoSenha } from "@/components/auth/CampoSenha";
@@ -10,9 +11,9 @@ export default async function LoginPage({
   const { erro } = await searchParams;
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-lane-chalk px-6 py-16">
+    <AuthMoldura>
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-3xl font-bold text-track-night">
+        <h1 className="font-display text-5xl leading-none font-black uppercase text-track-night">
           Entrar
         </h1>
         <p className="mt-1 text-sm text-track-fog">
@@ -33,7 +34,7 @@ export default async function LoginPage({
               name="email"
               required
               autoComplete="email"
-              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3 py-2 text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
+              className="rounded-[var(--radius-badge)] border border-track-fog/40 bg-white px-3.5 py-3 text-base text-track-night outline-none focus:border-stadium-blue focus:ring-2 focus:ring-stadium-blue/30"
             />
           </label>
 
@@ -47,7 +48,7 @@ export default async function LoginPage({
 
           <button
             type="submit"
-            className="mt-1 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane"
+            className="mt-1 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-tartan-escuro"
           >
             Entrar
           </button>
@@ -60,6 +61,6 @@ export default async function LoginPage({
           </Link>
         </p>
       </div>
-    </div>
+    </AuthMoldura>
   );
 }

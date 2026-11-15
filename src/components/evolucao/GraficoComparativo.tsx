@@ -113,20 +113,20 @@ export function GraficoComparativo({ atletas }: { atletas: AtletaComDados[] }) {
             <XAxis
               dataKey="semana"
               tickFormatter={formatarSemana}
-              tick={{ fontSize: 11, fill: "#90A4B8" }}
-              axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
+              tick={{ fontSize: 11, fill: "#8B8F97" }}
+              axisLine={{ stroke: "#8B8F97", strokeOpacity: 0.3 }}
               tickLine={false}
             />
-            <YAxis tick={{ fontSize: 11, fill: "#90A4B8" }} axisLine={false} tickLine={false} width={40} />
+            <YAxis tick={{ fontSize: 11, fill: "#8B8F97" }} axisLine={false} tickLine={false} width={40} />
             <Tooltip
               labelFormatter={(v) => `semana de ${formatarSemana(String(v))}`}
               contentStyle={{
-                background: "#123A5C",
+                background: "#1C2027",
                 border: "1px solid rgba(255,255,255,0.15)",
                 borderRadius: 6,
                 fontSize: 12,
               }}
-              labelStyle={{ color: "#90A4B8" }}
+              labelStyle={{ color: "#8B8F97" }}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: "#fff" }} />
             {dadosGrafico.seriesPorAtleta.map((s, i) => (

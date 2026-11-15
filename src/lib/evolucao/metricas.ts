@@ -8,4 +8,4 @@ export const METRICAS = [
 // Paleta categórica validada (checks de contraste/CVD/croma) para até 5 atletas
 // na mesma tela — passa dos 5 e a leitura já não é mais confiável, use small
 // multiples em vez de espremer mais uma cor.
-export const CORES_COMPARATIVO = ["#1C6DD0", "#0F9B8E", "#5B4FA8", "#2F8FCC", "#26568C"];
+export const CORES_COMPARATIVO = ["#F0481E", "#F5B921", "#3FA7A0", "#8E7CE0", "#D9D4C7"];

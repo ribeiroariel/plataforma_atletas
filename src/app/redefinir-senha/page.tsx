@@ -1,3 +1,4 @@
+import { AuthMoldura } from "@/components/auth/AuthMoldura";
 import { RedefinirSenhaForm } from "@/components/auth/RedefinirSenhaForm";
 
 export default async function RedefinirSenhaPage({
@@ -8,9 +9,9 @@ export default async function RedefinirSenhaPage({
   const { erro } = await searchParams;
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-lane-chalk px-6 py-16">
+    <AuthMoldura>
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-3xl font-bold text-track-night">
+        <h1 className="font-display text-5xl leading-none font-black uppercase text-track-night">
           Nova senha
         </h1>
         <p className="mt-1 text-sm text-track-fog">
@@ -25,6 +26,6 @@ export default async function RedefinirSenhaPage({
 
         <RedefinirSenhaForm />
       </div>
-    </div>
+    </AuthMoldura>
   );
 }

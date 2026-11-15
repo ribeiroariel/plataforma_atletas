@@ -92,6 +92,50 @@ export function unidadesRegistraveis(sessao: DiaSemana | BlocoSessao): UnidadeRe
   return [{ itemIndex: 0, rotulo: fallback }];
 }
 
+function ehRegistravel(bloco: BlocoTexto): boolean {
+  return (
+    bloco.tipo === "item-numerado" ||
+    bloco.tipo === "item-lista" ||
+    (bloco.tipo === "paragrafo" && PADRAO_INTERVALO_PISTA.test(bloco.texto.trim()))
+  );
+}
+
+// O "roteiro" de uma sessão: os blocos de texto na ordem da planilha, com os
+// exercícios já casados com sua unidade registrável (mesmo itemIndex de
+// unidadesRegistraveis — as duas funções PRECISAM concordar, é esse índice
+// que vira chave em exercise_logs). Serve pra tela mostrar instrução e campo
+// de registro juntos, em vez de listar o treino duas vezes.
+export type ItemRoteiro =
+  | { tipo: "texto"; bloco: BlocoTexto }
+  | { tipo: "exercicio"; unidade: UnidadeRegistravel; detalhe: string[]; geral: boolean };
+
+export function roteiroDaSessao(sessao: DiaSemana | BlocoSessao): ItemRoteiro[] {
+  const unidades = unidadesRegistraveis(sessao);
+  const itens: ItemRoteiro[] = [];
+  let indice = 0;
+
+  for (const bloco of sessao.blocos) {
+    if (ehRegistravel(bloco)) {
+      const unidade = unidades[indice++];
+      if (!unidade) continue;
+      itens.push({
+        tipo: "exercicio",
+        unidade,
+        detalhe: bloco.tipo === "item-numerado" ? bloco.detalhe : [],
+        geral: false,
+      });
+    } else {
+      itens.push({ tipo: "texto", bloco });
+    }
+  }
+
+  // Sessão sem nenhum item listado: a sessão inteira vira um registro só.
+  if (indice === 0 && unidades[0]) {
+    itens.push({ tipo: "exercicio", unidade: unidades[0], detalhe: [], geral: true });
+  }
+  return itens;
+}
+
 function normalizar(texto: string) {
   return texto
     .normalize("NFD")
@@ -199,7 +243,7 @@ function parseGradeDeSemana(linhas: string[][], indiceCabecalho: number): ModoSe
     const dias: DiaSemana[] = [];
     for (let col = 1; col < cabecalho.length; col++) {
       const conteudo = String(linha[col] ?? "").trim();
-      const descanso = /^descanso$/i.test(conteudo);
+      const descanso = /^(descanso|folga|off|livre)\.?$/i.test(conteudo);
       dias.push({
         chave: `s${indiceSemana}-d${col}`,
         dia: String(cabecalho[col] ?? ""),
