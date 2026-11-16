@@ -7,9 +7,11 @@ export type Foto = { src: string; posicao?: string };
 
 export const FOTOS_PISTA: Foto[] = [
   { src: "/fotos/hero-chegada.webp", posicao: "66% 28%" },
+  { src: "/fotos/futebol-conducao.webp", posicao: "55% 32%" },
+  { src: "/fotos/salto-corrida.webp", posicao: "45% 28%" },
+  { src: "/fotos/futebol-disputa.webp", posicao: "55% 38%" },
+  { src: "/fotos/revezamento.webp", posicao: "38% 40%" },
   { src: "/fotos/prova-167.webp", posicao: "58% 38%" },
-  { src: "/fotos/corrida-402.webp", posicao: "50% 22%" },
-  { src: "/fotos/retrato-402.webp", posicao: "50% 20%" },
 ];
 
 // Fundo de fotos que vão se revezando com fade e um zoom lento. A primeira
