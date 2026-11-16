@@ -63,7 +63,7 @@ export function GraficoComparativo({ atletas }: { atletas: AtletaComDados[] }) {
   }, [atletas, selecionados, metrica]);
 
   return (
-    <div className="flex flex-col gap-4 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
+    <div className="raias flex flex-col gap-4 rounded-2xl bg-deep-lane p-4 sm:p-5">
       <div className="flex flex-wrap gap-1">
         {METRICAS.map((m) => (
           <button

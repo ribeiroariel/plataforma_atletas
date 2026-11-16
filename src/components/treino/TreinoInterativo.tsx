@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { diaDoMes } from "@/lib/datas";
 import type { GrupoTela, SessaoTela } from "@/lib/treino/montarSessoes";
 import { chaveRegistro, type RegistroExercicio, type RegistroMapa } from "@/lib/treino/registros";
+import { SessaoLeitura } from "./SessaoLeitura";
 import { SessaoPainel } from "./SessaoPainel";
 
 function Lua() {
@@ -28,6 +29,7 @@ export function TreinoInterativo({
   concluidasIniciais,
   sessaoInicial,
   hoje,
+  somenteLeitura = false,
 }: {
   planoId: string;
   grupos: GrupoTela[];
@@ -35,6 +37,8 @@ export function TreinoInterativo({
   concluidasIniciais: string[];
   sessaoInicial?: string;
   hoje: string;
+  // Visão do treinador: mesma navegação, mas só mostra o que o atleta fez.
+  somenteLeitura?: boolean;
 }) {
   const [registros, setRegistros] = useState<RegistroMapa>(registrosIniciais);
   const [concluidas, setConcluidas] = useState<Set<string>>(() => new Set(concluidasIniciais));
@@ -46,6 +50,13 @@ export function TreinoInterativo({
     if (pedida) return pedida.chave;
     const deHoje = todas.find((s) => s.data === hoje && treinavel(s));
     if (deHoje) return deHoje.chave;
+    if (somenteLeitura) {
+      // Pro treinador, abre na sessão mais recente em que o atleta mexeu.
+      const mexidas = todas.filter(
+        (s) => treinavel(s) && (concluidasIniciais.includes(s.chave) || Object.keys(registrosIniciais).some((c) => c.startsWith(`${s.chave}:`))),
+      );
+      if (mexidas.length) return mexidas[mexidas.length - 1].chave;
+    }
     const proxima = todas.find((s) => treinavel(s) && !concluidasIniciais.includes(s.chave));
     return (proxima ?? todas.find(treinavel) ?? todas[0])?.chave ?? "";
   });
@@ -188,6 +199,15 @@ export function TreinoInterativo({
         })}
       </div>
 
+      {somenteLeitura ? (
+        <SessaoLeitura
+          key={sessao.chave}
+          sessao={sessao}
+          anterior={anterior}
+          registros={registros}
+          concluida={concluidas.has(sessao.chave)}
+        />
+      ) : (
       <SessaoPainel
         key={sessao.chave}
         planoId={planoId}
@@ -198,6 +218,7 @@ export function TreinoInterativo({
         onRegistro={aoRegistrar}
         onConcluida={(c) => aoConcluir(sessao.chave, c)}
       />
+      )}
     </div>
   );
 }

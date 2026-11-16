@@ -67,3 +67,9 @@ export const IconeFeedback = (
     />
   </svg>
 );
+
+export const IconeTrocar = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M7 7h12l-3-3M17 17H5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);

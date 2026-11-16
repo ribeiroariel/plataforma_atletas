@@ -5,39 +5,41 @@ import { EvolucaoDashboard } from "@/components/evolucao/EvolucaoDashboard";
 import { TabelaComparativa } from "@/components/evolucao/TabelaComparativa";
 import { ProgressoExercicios } from "@/components/evolucao/ProgressoExercicios";
 import { buscarProgressoExercicios } from "@/lib/planilha/progressoExercicios";
-import { IconeAcademia, IconePista } from "@/components/icons/IconesTreino";
+import { haQuanto, resumirAtletas } from "@/lib/treinador/resumoAtletas";
+import { dataCurta, diaDoMes, hojeBrasilIso, tituloDoPlano } from "@/lib/datas";
+import { formatarNumero } from "@/lib/treino/registros";
+import { Anel, Avatar, LegendaEstados } from "@/components/treinador/pecas";
 
-const ICONE_POR_MODO = {
-  semana: IconeAcademia,
-  blocos: IconePista,
-  generico: IconeAcademia,
-} as const;
-
-type Plano = {
-  id: string;
-  nome_arquivo: string;
-  data_criacao: string;
-  data_inicio: string | null;
-  modo_treino: string | null;
-  numero_semanas: number | null;
+const ROTULO_MODO: Record<string, string> = {
+  semana: "Mesociclo",
+  blocos: "Sessão de pista",
+  generico: "Plano de treino",
 };
 
-// Só a grade semanal (academia/cardio em ciclo) tem duração inerente — sessões
-// de pista (blocos) não expiram dessa forma. dataFim = início do mesociclo +
-// numero_semanas semanas; diasRestantes negativo = mesociclo já encerrado.
-// Usa data_inicio quando o treinador já corrigiu (upload nem sempre coincide
-// com o início real), senão cai para data_criacao.
-function statusMesociclo(plano: Plano, hojeIso: string) {
-  if (plano.modo_treino !== "semana" || !plano.numero_semanas) return null;
-  const fim = new Date(`${plano.data_inicio ?? plano.data_criacao}T00:00:00Z`);
-  fim.setUTCDate(fim.getUTCDate() + plano.numero_semanas * 7);
-  const hoje = new Date(`${hojeIso}T00:00:00Z`);
-  const diasRestantes = Math.round((fim.getTime() - hoje.getTime()) / 86_400_000);
-  return { diasRestantes };
-}
+const COR_DIA: Record<string, string> = {
+  feito: "bg-ok text-white",
+  parcial: "bg-sinal text-ink",
+  perdido: "bg-white text-ink ring-1 ring-erro/50",
+  planejado: "bg-white text-ink ring-1 ring-ash",
+  descanso: "border border-dashed border-ash text-cinza",
+  vazio: "border border-dashed border-ash text-cinza/60",
+};
 
-function nomeLegivel(nomeArquivo: string) {
-  return nomeArquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ");
+const NOTA_DIA: Record<string, string> = {
+  feito: "Concluído",
+  parcial: "Começou",
+  perdido: "Não fez",
+  planejado: "Planejado",
+  descanso: "Descanso",
+  vazio: "—",
+};
+
+function Seta() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default async function AtletaDoTreinadorPage({
@@ -47,163 +49,252 @@ export default async function AtletaDoTreinadorPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const hoje = hojeBrasilIso();
 
-  const { data: atleta } = await supabase
-    .from("athletes")
-    .select("id, nome")
-    .eq("id", id)
-    .single();
+  const [{ atletas, recados }, { data: dados }, { data: conclusoes }] = await Promise.all([
+    resumirAtletas(supabase, hoje, id),
+    supabase.from("training_data").select("data, tipo, variavel, valor").eq("athlete_id", id),
+    supabase.from("training_completions").select("training_plan_id").eq("athlete_id", id),
+  ]);
 
-  if (!atleta) {
-    notFound();
-  }
-
-  const { data: dados } = await supabase
-    .from("training_data")
-    .select("data, tipo, variavel, valor")
-    .eq("athlete_id", atleta.id);
+  const atleta = atletas[0];
+  if (!atleta) notFound();
 
   const progressoExercicios = await buscarProgressoExercicios(supabase, atleta.id);
 
-  const { data: planos } = await supabase
-    .from("training_plans")
-    .select("id, nome_arquivo, data_criacao, data_inicio, modo_treino, numero_semanas")
-    .eq("athlete_id", atleta.id)
-    .order("data_criacao", { ascending: false });
-
-  const { data: observacoes } = await supabase
-    .from("observations")
-    .select("id, training_plan_id, texto, data")
-    .eq("athlete_id", atleta.id)
-    .order("data", { ascending: false });
-
-  const { data: conclusoes } = await supabase
-    .from("training_completions")
-    .select("training_plan_id")
-    .eq("athlete_id", atleta.id);
-
-  const observacoesPorPlano = new Map<string, typeof observacoes>();
-  (observacoes ?? []).forEach((obs) => {
-    const lista = observacoesPorPlano.get(obs.training_plan_id) ?? [];
-    lista.push(obs);
-    observacoesPorPlano.set(obs.training_plan_id, lista);
-  });
-
   const conclusoesPorPlano = new Map<string, number>();
-  (conclusoes ?? []).forEach((c) => {
-    conclusoesPorPlano.set(
-      c.training_plan_id,
-      (conclusoesPorPlano.get(c.training_plan_id) ?? 0) + 1,
-    );
-  });
+  for (const c of conclusoes ?? []) {
+    conclusoesPorPlano.set(c.training_plan_id, (conclusoesPorPlano.get(c.training_plan_id) ?? 0) + 1);
+  }
+  const recadosPorPlano = new Map<string, number>();
+  for (const r of recados) recadosPorPlano.set(r.planoId, (recadosPorPlano.get(r.planoId) ?? 0) + 1);
 
-  const hojeIso = new Date().toISOString().slice(0, 10);
-  // planos já vem ordenado por data_criacao desc — o primeiro plano em modo
-  // "semana" é o mesociclo vigente.
-  const planoAtual = (planos ?? []).find((p) => p.modo_treino === "semana" && p.numero_semanas);
-  const mesocicloAtual = planoAtual ? statusMesociclo(planoAtual, hojeIso) : null;
+  const base = `/treinador/atletas/${id}`;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 bg-track-night px-6 py-10 text-white">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/treinador" className="text-sm text-sky-split hover:underline">
-            ← Seus atletas
+    <div className="flex flex-1 flex-col bg-bone">
+      <header className="raias bg-ink px-5 pt-6 pb-7 text-white sm:px-8 sm:pt-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+          <Link
+            href="/treinador"
+            className="rotulo -ml-2 flex min-h-[40px] w-fit items-center gap-1.5 rounded-full px-2 text-white/60 transition-colors hover:text-white"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Equipe
           </Link>
-          <h1 className="mt-2 font-display text-2xl font-bold">{atleta.nome}</h1>
+
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar nome={atleta.nome} url={atleta.avatarUrl} tamanho={76} className="ring-2 ring-white/20" />
+              <div className="min-w-0">
+                <p className="rotulo text-tartan">
+                  {atleta.ativo ? tituloDoPlano(atleta.ativo.nome_arquivo) : "Sem plano enviado"}
+                </p>
+                <h1 className="font-display mt-1 text-5xl leading-[0.92] font-black break-words uppercase sm:text-6xl">
+                  {atleta.nome}
+                </h1>
+                <p className="tabular-data mt-2 text-xs text-white/55">Último registro {haQuanto(atleta.diasSemAtividade)}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {atleta.ativo && (
+                <Link
+                  href={`${base}/treinos/${atleta.ativo.id}`}
+                  className="flex min-h-[48px] items-center gap-2 rounded-full bg-tartan px-5 text-sm font-bold tracking-wide uppercase transition-colors hover:bg-tartan-escuro"
+                >
+                  Ver execução <Seta />
+                </Link>
+              )}
+              <Link
+                href={`${base}/calendario`}
+                className="flex min-h-[48px] items-center rounded-full border border-white/25 px-5 text-sm font-bold tracking-wide uppercase transition-colors hover:bg-white hover:text-ink"
+              >
+                Calendário
+              </Link>
+            </div>
+          </div>
         </div>
-        <Link
-          href={`/treinador/atletas/${id}/calendario`}
-          className="rounded-[var(--radius-badge)] border border-white/20 bg-white px-3 py-1.5 text-sm font-medium text-track-night hover:bg-lane-chalk"
-        >
-          Ver calendário de treinos
-        </Link>
-      </div>
+      </header>
 
-      {mesocicloAtual && planoAtual && mesocicloAtual.diasRestantes <= 7 && (
-        <div
-          className={`rounded-[var(--radius-badge)] border px-4 py-3 text-sm ${
-            mesocicloAtual.diasRestantes <= 0
-              ? "border-split-ember/40 bg-split-ember/10 text-split-ember"
-              : "border-split-ember/25 bg-split-ember/5 text-split-ember/90"
-          }`}
-        >
-          {mesocicloAtual.diasRestantes <= 0
-            ? `O mesociclo atual (${nomeLegivel(planoAtual.nome_arquivo)}) encerrou há ${Math.abs(mesocicloAtual.diasRestantes)} dia(s) — hora de montar o próximo treino.`
-            : `O mesociclo atual (${nomeLegivel(planoAtual.nome_arquivo)}) termina em ${mesocicloAtual.diasRestantes} dia(s).`}
-        </div>
-      )}
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6 sm:px-8 sm:py-10">
+        {atleta.alertas.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {atleta.alertas.map((al, i) => (
+              <li
+                key={i}
+                className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  al.grave ? "bg-erro text-white" : "bg-sinal/40 text-ink"
+                }`}
+              >
+                {al.texto}
+                {al.tipo === "mesociclo" && al.grave ? " — hora de montar o próximo" : ""}
+              </li>
+            ))}
+          </ul>
+        )}
 
-      <EvolucaoDashboard dados={dados ?? []} />
+        {/* Semana + adesão */}
+        <section className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+          <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-ash sm:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="font-display text-2xl font-extrabold uppercase">Esta semana</h2>
+              <LegendaEstados />
+            </div>
+            <ol className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-7 sm:px-0">
+              {atleta.semana.map((d) => {
+                const corpo = (
+                  <>
+                    <span className="rotulo text-[10px] opacity-75">{d.rotuloCurto}</span>
+                    <span className="font-display text-3xl leading-none font-extrabold tabular-nums">{diaDoMes(d.data)}</span>
+                    <span className="line-clamp-2 min-h-[2rem] text-xs leading-tight opacity-85">{d.titulo || "Sem treino"}</span>
+                    <span className="rotulo text-[9px] opacity-75">{NOTA_DIA[d.estado]}</span>
+                  </>
+                );
+                const classe = `flex min-w-[6.5rem] shrink-0 flex-col gap-1.5 rounded-xl p-3 sm:min-w-0 ${COR_DIA[d.estado]} ${
+                  d.data === hoje ? "outline outline-2 outline-offset-2 outline-ink" : ""
+                }`;
+                return (
+                  <li key={d.data} className="contents">
+                    {d.sessionKey && atleta.ativo ? (
+                      <Link
+                        href={`${base}/treinos/${atleta.ativo.id}?sessao=${d.sessionKey}`}
+                        className={`${classe} transition-transform hover:-translate-y-0.5`}
+                      >
+                        {corpo}
+                      </Link>
+                    ) : (
+                      <div className={classe}>{corpo}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
 
-      <TabelaComparativa dados={dados ?? []} />
+          <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white p-5 ring-1 ring-ash">
+            <div className="flex items-center gap-4">
+              <Anel fracao={atleta.totalPlano ? atleta.feitosPlano / atleta.totalPlano : 0} rotulo="do plano concluído" tamanho={84} />
+              <div>
+                <p className="font-display text-xl leading-tight font-extrabold uppercase">Plano atual</p>
+                <p className="text-sm text-cinza">
+                  {atleta.totalPlano
+                    ? `${atleta.feitosPlano} de ${atleta.totalPlano} treinos concluídos`
+                    : "Sem treinos mapeados"}
+                </p>
+                {atleta.diasRestantes !== null && atleta.diasRestantes > 0 && (
+                  <p className="tabular-data mt-1 text-[11px] text-cinza">faltam {atleta.diasRestantes} dias</p>
+                )}
+              </div>
+            </div>
+            <dl className="grid grid-cols-3 gap-2 border-t border-ash pt-4">
+              {[
+                { v: atleta.planejadosSemana ? `${atleta.feitosSemana}/${atleta.planejadosSemana}` : "—", r: "Na semana" },
+                { v: atleta.kgSemana > 0 ? formatarNumero(atleta.kgSemana, 0) : "—", r: "Kg na semana" },
+                { v: atleta.kmSemana > 0 ? formatarNumero(atleta.kmSemana) : "—", r: "Km na semana" },
+              ].map((n) => (
+                <div key={n.r} className="flex flex-col-reverse">
+                  <dt className="rotulo text-[9px] text-cinza">{n.r}</dt>
+                  <dd className="font-display text-2xl leading-none font-extrabold tabular-nums">{n.v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
 
-      <ProgressoExercicios dados={progressoExercicios} />
-
-      <section className="flex flex-col gap-3 rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
-        <h2 className="font-display text-lg font-semibold">Observações do atleta</h2>
-
-        {planos && planos.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {planos.map((plano) => {
-              const obsDoPlano = observacoesPorPlano.get(plano.id) ?? [];
-              const totalConcluidas = conclusoesPorPlano.get(plano.id) ?? 0;
-              const Icone =
-                ICONE_POR_MODO[plano.modo_treino as keyof typeof ICONE_POR_MODO] ?? IconeAcademia;
-              const status = statusMesociclo(plano, hojeIso);
-              return (
-                <div key={plano.id} className="border-t border-white/10 pt-3 first:border-0 first:pt-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <Link
-                      href={`/treinador/atletas/${id}/treinos/${plano.id}`}
-                      className="flex items-center gap-1.5 text-sm font-medium text-white hover:underline"
-                    >
-                      <Icone className="h-4 w-4 shrink-0 text-sky-split" />
-                      {nomeLegivel(plano.nome_arquivo)}
-                    </Link>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {status && (
-                        <span
-                          className={`tabular-data rounded-[var(--radius-badge)] px-2 py-0.5 text-xs font-medium ${
-                            status.diasRestantes <= 0
-                              ? "bg-split-ember/20 text-split-ember"
-                              : status.diasRestantes <= 7
-                                ? "bg-split-ember/10 text-split-ember/90"
-                                : "bg-white/10 text-track-fog"
+        {/* Planos + recados */}
+        <section className="grid gap-8 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <h2 className="font-display text-2xl font-extrabold uppercase">Planos</h2>
+            {atleta.planos.length === 0 ? (
+              <p className="rounded-2xl bg-white px-5 py-8 text-center text-sm text-cinza ring-1 ring-ash">
+                Nenhum treino enviado para esse atleta ainda.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {atleta.planos.map((plano) => {
+                  const atual = plano.id === atleta.ativo?.id;
+                  const feitas = conclusoesPorPlano.get(plano.id) ?? 0;
+                  const nRecados = recadosPorPlano.get(plano.id) ?? 0;
+                  return (
+                    <li key={plano.id}>
+                      <Link
+                        href={`${base}/treinos/${plano.id}`}
+                        className="group flex items-center gap-4 rounded-2xl bg-white p-4 ring-1 ring-ash transition-all hover:-translate-y-0.5 hover:ring-ink/30"
+                      >
+                        <div
+                          className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl ${
+                            atual ? "bg-tartan text-white" : "bg-bone"
                           }`}
                         >
-                          {status.diasRestantes <= 0
-                            ? `encerrado há ${Math.abs(status.diasRestantes)}d`
-                            : `termina em ${status.diasRestantes}d`}
+                          <span className="font-display text-2xl leading-none font-extrabold tabular-nums">
+                            {diaDoMes(plano.data_inicio ?? plano.data_criacao)}
+                          </span>
+                          <span className="rotulo text-[9px] opacity-80">
+                            {dataCurta(plano.data_inicio ?? plano.data_criacao).split(" ")[1]}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="rotulo text-cinza">
+                            {ROTULO_MODO[plano.modo_treino ?? "generico"] ?? "Plano de treino"}
+                            {plano.numero_semanas ? ` · ${plano.numero_semanas} sem.` : ""}
+                            {atual ? " · atual" : ""}
+                          </p>
+                          <p className="font-display mt-0.5 truncate text-xl leading-tight font-bold uppercase">
+                            {tituloDoPlano(plano.nome_arquivo)}
+                          </p>
+                          <p className="tabular-data mt-1 text-[11px] text-cinza">
+                            {feitas} sess{feitas === 1 ? "ão concluída" : "ões concluídas"}
+                            {nRecados ? ` · ${nRecados} recado${nRecados > 1 ? "s" : ""}` : ""}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-cinza transition-all group-hover:translate-x-1 group-hover:text-ink">
+                          <Seta />
                         </span>
-                      )}
-                      {totalConcluidas > 0 && (
-                        <span className="tabular-data rounded-[var(--radius-badge)] bg-stadium-blue/20 px-2 py-0.5 text-xs font-medium text-sky-split">
-                          {totalConcluidas} concluída{totalConcluidas > 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {obsDoPlano.length > 0 ? (
-                    <ul className="mt-1 flex flex-col gap-1">
-                      {obsDoPlano.map((obs) => (
-                        <li key={obs.id} className="text-sm text-white/70">
-                          <span className="tabular-data mr-2 text-xs text-track-fog">{obs.data}</span>
-                          {obs.texto}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-xs text-track-fog">Sem observações ainda.</p>
-                  )}
-                </div>
-              );
-            })}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-        ) : (
-          <p className="text-sm text-track-fog">Nenhum treino enviado para esse atleta ainda.</p>
-        )}
-      </section>
+
+          <div className="flex flex-col gap-3">
+            <h2 className="font-display text-2xl font-extrabold uppercase">Recados do atleta</h2>
+            {recados.length === 0 ? (
+              <p className="rounded-2xl bg-white px-5 py-8 text-center text-sm text-cinza ring-1 ring-ash">
+                Sem recados ainda.
+              </p>
+            ) : (
+              <ol className="relative flex flex-col gap-4 border-l-2 border-ash pl-5">
+                {recados.slice(0, 12).map((r) => {
+                  const plano = atleta.planos.find((p) => p.id === r.planoId);
+                  return (
+                    <li key={r.id} className="relative">
+                      <span aria-hidden className="absolute top-1.5 -left-[1.6rem] h-2.5 w-2.5 rounded-full bg-tartan ring-4 ring-bone" />
+                      <p className="tabular-data text-[11px] text-cinza">
+                        {dataCurta(r.data)}
+                        {plano ? ` · ${tituloDoPlano(plano.nome_arquivo)}` : ""}
+                      </p>
+                      <p className="mt-1 rounded-xl bg-white px-4 py-3 text-sm leading-relaxed break-words text-ink/85 ring-1 ring-ash">
+                        {r.texto}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <h2 className="font-display text-2xl font-extrabold uppercase">Evolução</h2>
+          <EvolucaoDashboard dados={dados ?? []} />
+          <ProgressoExercicios dados={progressoExercicios} />
+          <TabelaComparativa dados={dados ?? []} />
+        </section>
+      </div>
     </div>
   );
 }

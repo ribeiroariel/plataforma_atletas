@@ -9,6 +9,7 @@ import {
   type SessaoTela,
 } from "@/lib/treino/montarSessoes";
 import { formatarNumero } from "@/lib/treino/registros";
+import { escolherPlanoAtivo } from "@/lib/treinador/resumoAtletas";
 import {
   dataCurta,
   diaDaSemanaLongo,
@@ -16,7 +17,6 @@ import {
   hojeBrasilIso,
   mesLongo,
   segundaDaSemana,
-  somarDias,
   tituloDoPlano,
 } from "@/lib/datas";
 import { FotoRotativa } from "@/components/ui/FotoRotativa";
@@ -48,17 +48,6 @@ function saudacao(): string {
   if (hora < 12) return "Bom dia";
   if (hora < 18) return "Boa tarde";
   return "Boa noite";
-}
-
-// O plano "da vez": o mesociclo cujo período cobre hoje; na falta, o mais
-// recente que o treinador subiu.
-function escolherPlanoAtivo(planos: Plano[], hoje: string): Plano | null {
-  const emCurso = planos.find((p) => {
-    if (p.modo_treino !== "semana" || !p.numero_semanas) return false;
-    const inicio = segundaDaSemana(p.data_inicio ?? p.data_criacao);
-    return hoje >= inicio && hoje < somarDias(inicio, p.numero_semanas * 7);
-  });
-  return emCurso ?? planos[0] ?? null;
 }
 
 function contarExercicios(sessao: SessaoTela): number {

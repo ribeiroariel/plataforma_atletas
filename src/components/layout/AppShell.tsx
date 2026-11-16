@@ -30,11 +30,14 @@ export function AppShell({
   papel,
   nome,
   avatarUrl,
+  alternar = false,
   children,
 }: {
   papel: "athlete" | "coach";
   nome: string;
   avatarUrl: string | null;
+  // Conta com os dois cadastros: mostra o atalho pra trocar de lado.
+  alternar?: boolean;
   children: React.ReactNode;
 }) {
   const ehCoach = papel === "coach";
@@ -45,6 +48,7 @@ export function AppShell({
         nome={nome}
         avatarUrl={avatarUrl}
         itens={ehCoach ? ITENS_TREINADOR : ITENS_ATLETA}
+        troca={alternar ? (ehCoach ? { href: "/atleta", label: "Ver como atleta" } : { href: "/treinador", label: "Voltar ao painel" }) : undefined}
       />
       <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
         {children}

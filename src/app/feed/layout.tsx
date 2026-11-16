@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getPapel } from "@/lib/supabase/profile";
+import { resolverVisao } from "@/lib/supabase/visao";
 import { AppShell } from "@/components/layout/AppShell";
 
 export default async function FeedLayout({
@@ -12,7 +12,7 @@ export default async function FeedLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const papel = user ? await getPapel(supabase, user.id) : null;
+  const { visao, duplo } = await resolverVisao(supabase, user?.id);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -22,7 +22,8 @@ export default async function FeedLayout({
 
   return (
     <AppShell
-      papel={papel === "coach" ? "coach" : "athlete"}
+      papel={visao}
+      alternar={duplo}
       nome={profile?.nome ?? ""}
       avatarUrl={profile?.avatar_url ?? null}
     >

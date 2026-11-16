@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/lib/actions/auth";
 import { FotoPerfil } from "@/components/perfil/FotoPerfil";
-import { IconeSair } from "./iconesNav";
+import { IconeSair, IconeTrocar } from "./iconesNav";
 
 export type ItemNav = {
   href: string;
@@ -35,11 +35,13 @@ export function Sidebar({
   nome,
   avatarUrl,
   itens,
+  troca,
 }: {
   titulo: string;
   nome: string;
   avatarUrl: string | null;
   itens: ItemNav[];
+  troca?: { href: string; label: string };
 }) {
   const pathname = usePathname();
 
@@ -54,6 +56,15 @@ export function Sidebar({
       <header className="sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2.5 md:hidden">
         <Marca />
         <div className="flex items-center gap-2">
+          {troca && (
+            <Link
+              href={troca.href}
+              className="rotulo flex min-h-[36px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-[10px] text-white transition-colors hover:bg-white/20"
+            >
+              {IconeTrocar}
+              {troca.label}
+            </Link>
+          )}
           <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={32} />
           <form action={logout}>
             <button
@@ -123,7 +134,17 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="mt-auto flex items-center gap-3 border-t border-white/10 pt-4">
+        {troca && (
+          <Link
+            href={troca.href}
+            className="mt-auto mb-4 flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-badge)] border border-white/15 px-3 text-sm font-semibold text-white transition-colors hover:border-tartan hover:bg-tartan"
+          >
+            {IconeTrocar}
+            {troca.label}
+          </Link>
+        )}
+
+        <div className={`flex items-center gap-3 border-t border-white/10 pt-4 ${troca ? "" : "mt-auto"}`}>
           <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={38} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{nome || titulo}</p>
