@@ -25,6 +25,53 @@ const PASSOS = [
   },
 ];
 
+// Galeria da página inicial: atletas da equipe em prova e em jogo.
+// "caixa" define o tamanho de cada foto na grade (2 colunas no celular, 12 no computador).
+const GALERIA = [
+  {
+    src: "/fotos/salto-areia.webp",
+    alt: "Atleta aterrissando na caixa de areia do salto em distância",
+    caixa: "col-span-2 aspect-[16/11] md:col-span-7 md:aspect-auto md:min-h-[30rem]",
+    sizes: "(min-width: 768px) 58vw, 100vw",
+    posicao: "30% 35%",
+  },
+  {
+    src: "/fotos/futebol-treino.webp",
+    alt: "Jogadores disputando a bola num treino de futebol",
+    caixa: "col-span-2 aspect-[4/3] md:col-span-5 md:aspect-auto",
+    sizes: "(min-width: 768px) 42vw, 100vw",
+    posicao: "50% 55%",
+  },
+  {
+    src: "/fotos/revezamento.webp",
+    alt: "Atleta correndo com o bastão numa prova de revezamento",
+    caixa: "aspect-[3/4] md:col-span-4 md:aspect-[4/3]",
+    sizes: "(min-width: 768px) 33vw, 50vw",
+    posicao: "38% 45%",
+  },
+  {
+    src: "/fotos/futebol-disputa.webp",
+    alt: "Jogador protegendo a bola do marcador",
+    caixa: "aspect-[3/4] md:col-span-4 md:aspect-[4/3]",
+    sizes: "(min-width: 768px) 33vw, 50vw",
+    posicao: "55% 40%",
+  },
+  {
+    src: "/fotos/salto-corrida.webp",
+    alt: "Atleta na corrida de aproximação do salto em distância",
+    caixa: "col-span-2 aspect-[16/10] md:col-span-4 md:aspect-[4/3]",
+    sizes: "(min-width: 768px) 33vw, 100vw",
+    posicao: "45% 30%",
+  },
+  {
+    src: "/fotos/futebol-conducao.webp",
+    alt: "Jogador conduzindo a bola em velocidade",
+    caixa: "col-span-2 aspect-[16/10] md:col-span-5 md:aspect-auto md:min-h-[20rem]",
+    sizes: "(min-width: 768px) 42vw, 100vw",
+    posicao: "55% 35%",
+  },
+];
+
 export default function Home() {
   return (
     <div className="flex flex-col bg-ink text-white">
@@ -144,34 +191,24 @@ export default function Home() {
       {/* Fotos */}
       <section className="px-5 py-20 sm:px-10 sm:py-28">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-12">
-          <Revelar modo="cortina" className="relative col-span-2 aspect-[16/10] overflow-hidden rounded-2xl md:col-span-8 md:aspect-auto md:min-h-[30rem]">
-            <Image
-              src="/fotos/prova-167.webp"
-              alt="Atletas em plena prova de velocidade"
-              fill
-              sizes="(min-width: 768px) 66vw, 100vw"
-              className="object-cover object-[55%_40%] transition-transform duration-[1200ms] hover:scale-105"
-            />
-          </Revelar>
-          <Revelar modo="cortina" atraso={140} className="relative aspect-[3/4] overflow-hidden rounded-2xl md:col-span-4 md:aspect-auto">
-            <Image
-              src="/fotos/prova-513.webp"
-              alt="Atleta concentrado antes da largada"
-              fill
-              sizes="(min-width: 768px) 33vw, 50vw"
-              className="object-cover object-[50%_45%] transition-transform duration-[1200ms] hover:scale-105"
-            />
-          </Revelar>
-          <Revelar modo="cortina" atraso={80} className="relative aspect-[3/4] overflow-hidden rounded-2xl md:col-span-4 md:aspect-[4/3]">
-            <Image
-              src="/fotos/retrato-402.webp"
-              alt="Atleta caminhando na pista depois da prova"
-              fill
-              sizes="(min-width: 768px) 33vw, 50vw"
-              className="object-cover object-[50%_25%] transition-transform duration-[1200ms] hover:scale-105"
-            />
-          </Revelar>
-          <Revelar className="col-span-2 flex flex-col justify-between gap-8 rounded-2xl bg-ink-2 p-7 sm:p-10 md:col-span-8">
+          {GALERIA.map((foto, i) => (
+            <Revelar
+              key={foto.src}
+              modo="cortina"
+              atraso={(i % 3) * 110}
+              className={`relative overflow-hidden rounded-2xl ${foto.caixa}`}
+            >
+              <Image
+                src={foto.src}
+                alt={foto.alt}
+                fill
+                sizes={foto.sizes}
+                className="object-cover transition-transform duration-[1200ms] hover:scale-105"
+                style={{ objectPosition: foto.posicao }}
+              />
+            </Revelar>
+          ))}
+          <Revelar className="col-span-2 flex flex-col justify-between gap-8 rounded-2xl bg-ink-2 p-7 sm:p-10 md:col-span-7">
             <p className="font-display text-4xl leading-[0.95] font-black uppercase sm:text-6xl">
               O treino é seu.
               <br />
