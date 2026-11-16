@@ -1,17 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import { FOTOS, type FotoSite } from "@/lib/fotos";
+import { FotoFoco } from "./FotoFoco";
 
-export type Foto = { src: string; posicao?: string };
-
-export const FOTOS_PISTA: Foto[] = [
-  { src: "/fotos/hero-chegada.webp", posicao: "66% 28%" },
-  { src: "/fotos/futebol-conducao.webp", posicao: "55% 32%" },
-  { src: "/fotos/salto-corrida.webp", posicao: "45% 28%" },
-  { src: "/fotos/futebol-disputa.webp", posicao: "55% 38%" },
-  { src: "/fotos/revezamento.webp", posicao: "38% 40%" },
-  { src: "/fotos/prova-167.webp", posicao: "58% 38%" },
+export const FOTOS_PISTA: FotoSite[] = [
+  FOTOS.chegada,
+  FOTOS.futebolConducao,
+  FOTOS.saltoCorrida,
+  FOTOS.futebolDisputa,
+  FOTOS.revezamento,
+  FOTOS.prova,
 ];
 
 // Fundo de fotos que vão se revezando com fade e um zoom lento. A primeira
@@ -22,11 +21,13 @@ export function FotoRotativa({
   intervalo = 6500,
   inicio = 0,
   sizes = "100vw",
+  alvoXLargo,
 }: {
-  fotos?: Foto[];
+  fotos?: FotoSite[];
   intervalo?: number;
   inicio?: number;
   sizes?: string;
+  alvoXLargo?: number;
 }) {
   const primeira = inicio % fotos.length;
   const [ativa, setAtiva] = useState(primeira);
@@ -49,17 +50,14 @@ export function FotoRotativa({
         if (i !== primeira && !carregarTodas) return null;
         const on = i === ativa;
         return (
-          <Image
+          <FotoFoco
             key={foto.src}
-            src={foto.src}
+            foto={foto}
             alt=""
-            fill
             priority={i === primeira}
             sizes={sizes}
-            className={`object-cover transition-opacity duration-[1800ms] ease-in-out ${
-              on ? "foto-zoom opacity-100" : "opacity-0"
-            }`}
-            style={{ objectPosition: foto.posicao ?? "center" }}
+            alvoXLargo={alvoXLargo}
+            className={`transition-opacity duration-[1800ms] ease-in-out ${on ? "foto-zoom opacity-100" : "opacity-0"}`}
           />
         );
       })}

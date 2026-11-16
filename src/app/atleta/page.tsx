@@ -142,7 +142,7 @@ export default async function AtletaPage() {
     <div className="flex flex-1 flex-col bg-bone">
       {/* Abertura */}
       <section className="relative isolate overflow-hidden bg-ink text-white">
-        <FotoRotativa inicio={diaDoAno} sizes="(min-width: 768px) calc(100vw - 15rem), 100vw" />
+        <FotoRotativa inicio={diaDoAno} alvoXLargo={0.72} sizes="(min-width: 768px) calc(100vw - 15rem), 100vw" />
         <div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-t from-ink via-ink/75 to-ink/30 md:bg-gradient-to-r md:from-ink md:via-ink/80 md:to-ink/10"

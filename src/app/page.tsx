@@ -1,6 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Marca } from "@/components/layout/Sidebar";
+import { FOTOS } from "@/lib/fotos";
+import { FotoFoco } from "@/components/ui/FotoFoco";
 import { FotoRotativa } from "@/components/ui/FotoRotativa";
 import { Revelar } from "@/components/ui/Revelar";
 import { DemoRegistro } from "@/components/landing/DemoRegistro";
@@ -29,46 +30,34 @@ const PASSOS = [
 // "caixa" define o tamanho de cada foto na grade (2 colunas no celular, 12 no computador).
 const GALERIA = [
   {
-    src: "/fotos/salto-areia.webp",
-    alt: "Atleta aterrissando na caixa de areia do salto em distância",
+    foto: FOTOS.futebolTreino,
     caixa: "col-span-2 aspect-[16/11] md:col-span-7 md:aspect-auto md:min-h-[30rem]",
     sizes: "(min-width: 768px) 58vw, 100vw",
-    posicao: "30% 35%",
   },
   {
-    src: "/fotos/futebol-treino.webp",
-    alt: "Jogadores disputando a bola num treino de futebol",
+    foto: FOTOS.saltoAreia,
     caixa: "col-span-2 aspect-[4/3] md:col-span-5 md:aspect-auto",
     sizes: "(min-width: 768px) 42vw, 100vw",
-    posicao: "50% 55%",
   },
   {
-    src: "/fotos/revezamento.webp",
-    alt: "Atleta correndo com o bastão numa prova de revezamento",
+    foto: FOTOS.revezamento,
     caixa: "aspect-[3/4] md:col-span-4 md:aspect-[4/3]",
     sizes: "(min-width: 768px) 33vw, 50vw",
-    posicao: "38% 45%",
   },
   {
-    src: "/fotos/futebol-disputa.webp",
-    alt: "Jogador protegendo a bola do marcador",
+    foto: FOTOS.futebolDisputa,
     caixa: "aspect-[3/4] md:col-span-4 md:aspect-[4/3]",
     sizes: "(min-width: 768px) 33vw, 50vw",
-    posicao: "55% 40%",
   },
   {
-    src: "/fotos/salto-corrida.webp",
-    alt: "Atleta na corrida de aproximação do salto em distância",
+    foto: FOTOS.saltoCorrida,
     caixa: "col-span-2 aspect-[16/10] md:col-span-4 md:aspect-[4/3]",
     sizes: "(min-width: 768px) 33vw, 100vw",
-    posicao: "45% 30%",
   },
   {
-    src: "/fotos/futebol-conducao.webp",
-    alt: "Jogador conduzindo a bola em velocidade",
+    foto: FOTOS.futebolConducao,
     caixa: "col-span-2 aspect-[16/10] md:col-span-5 md:aspect-auto md:min-h-[20rem]",
     sizes: "(min-width: 768px) 42vw, 100vw",
-    posicao: "55% 35%",
   },
 ];
 
@@ -191,20 +180,17 @@ export default function Home() {
       {/* Fotos */}
       <section className="px-5 py-20 sm:px-10 sm:py-28">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-12">
-          {GALERIA.map((foto, i) => (
+          {GALERIA.map((item, i) => (
             <Revelar
-              key={foto.src}
+              key={item.foto.src}
               modo="cortina"
               atraso={(i % 3) * 110}
-              className={`relative overflow-hidden rounded-2xl ${foto.caixa}`}
+              className={`relative overflow-hidden rounded-2xl ${item.caixa}`}
             >
-              <Image
-                src={foto.src}
-                alt={foto.alt}
-                fill
-                sizes={foto.sizes}
-                className="object-cover transition-transform duration-[1200ms] hover:scale-105"
-                style={{ objectPosition: foto.posicao }}
+              <FotoFoco
+                foto={item.foto}
+                sizes={item.sizes}
+                className="transition-transform duration-[1200ms] hover:scale-105"
               />
             </Revelar>
           ))}
