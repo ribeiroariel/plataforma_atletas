@@ -235,7 +235,7 @@ export function ExercicioCard({
   }
 
   const chips = detalhe
-    .flatMap((linha) => linha.split("|"))
+    .flatMap((linha) => linha.split(/\||,\s+/))
     .map((c) => c.trim())
     .filter(Boolean);
 

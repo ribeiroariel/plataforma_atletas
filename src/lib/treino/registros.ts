@@ -125,8 +125,20 @@ export function detectarNumeroSeries(detalhe?: string): number {
 // Sem nada reconhecível, devolve null.
 export function detectarDescanso(detalhe?: string): number | null {
   if (!detalhe) return null;
-  const trecho = detalhe.match(/(?:desc(?:anso)?|pausa|interv(?:alo)?)\.?\s*:?\s*(?:de\s*)?([^|·;]+)/i);
+  // Vale a ÚLTIMA menção: em "pausa de 1'' em cima, pausa 60''" a primeira é
+  // a pausa dentro da repetição e só a última é o descanso entre séries.
+  const trechos = [...detalhe.matchAll(/(?:desc(?:anso)?|pausa|interv(?:alo)?)\.?\s*:?\s*(?:de\s*)?([^|·;,]+)/gi)];
+  const trecho = trechos[trechos.length - 1];
   if (!trecho) return null;
+
+  // Notação de cronômetro: 1'30'' = 90s, 90'' = 90s, 3' = 3min.
+  const dentroDoLimite = (seg: number) => (seg > 0 && seg <= 900 ? seg : null);
+  const minSeg = trecho[1].match(/(\d+)\s*['′’]\s*(\d{1,2})\s*(?:''|"|″|”)/);
+  if (minSeg) return dentroDoLimite(Number(minSeg[1]) * 60 + Number(minSeg[2]));
+  const soSeg = trecho[1].match(/(\d+)\s*(?:''|"|″|”)/);
+  if (soSeg) return dentroDoLimite(Number(soSeg[1]));
+  const soMin = trecho[1].match(/(\d+(?:[.,]\d+)?)\s*['′’]/);
+  if (soMin) return dentroDoLimite(Math.round(Number(soMin[1].replace(",", ".")) * 60));
 
   const faixa = trecho[1].match(/(\d+(?:[.,]\d+)?)(?:\s*(?:-|a|–)\s*(\d+(?:[.,]\d+)?))?\s*(min|seg|s\b|m\b)/i);
   if (!faixa) return null;

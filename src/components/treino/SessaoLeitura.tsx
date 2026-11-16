@@ -60,6 +60,12 @@ export function SessaoLeitura({
   }
   const ordemPorItem = new Map(exercicios.map((e, i) => [e.unidade.itemIndex, i + 1]));
 
+  // Registro "geral" antigo (índice 0) de quando a planilha ainda não tinha
+  // exercícios reconhecidos: continua aparecendo, pra não sumir da vista.
+  const geralAntigo = exercicios.some((e) => e.unidade.itemIndex === 0)
+    ? []
+    : Object.values(registrosDoExercicio(registros, sessao.chave, 0));
+
   return (
     <section className="animate-subir flex flex-col gap-4">
       <div className="raias overflow-hidden rounded-2xl bg-ink text-white">
@@ -108,6 +114,15 @@ export function SessaoLeitura({
         )}
       </div>
 
+      {geralAntigo.length > 0 && (
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-ash">
+          <span className="rotulo mr-2 text-[10px] text-cinza">Registro geral da sessão</span>
+          <span className="font-display text-lg font-extrabold tabular-nums">
+            {geralAntigo.map((r) => `${valorDoRegistro(r)}${r.metrica === "kg" ? " kg" : ""}`).join(" · ")}
+          </span>
+        </p>
+      )}
+
       <ul className="flex flex-col gap-2">
         {sessao.roteiro.map((item, i) => {
           if (item.tipo === "texto") {
@@ -139,7 +154,7 @@ export function SessaoLeitura({
           const dif = kgAgora > 0 && kgAntes > 0 ? kgAgora - kgAntes : null;
           const ehCarga = series.some((s) => feitos[s].metrica === "kg");
           const chips = item.detalhe
-            .flatMap((l) => l.split("|"))
+            .flatMap((l) => l.split(/\||,\s+/))
             .map((c) => c.trim())
             .filter(Boolean);
 

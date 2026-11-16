@@ -190,6 +190,26 @@ export function SessaoPainel({
         })}
       </ul>
 
+      {/* Registro "geral" antigo (índice 0) de quando essa planilha ainda não
+          tinha exercícios reconhecidos: segue editável, pra não ficar preso. */}
+      {!exercicios.some((e) => e.unidade.itemIndex === 0) &&
+        Object.keys(registrosDoExercicio(registros, sessao.chave, 0)).length > 0 && (
+          <ul>
+            <ExercicioCard
+              planoId={planoId}
+              sessionKey={sessao.chave}
+              ordem={exercicios.length + 1}
+              unidade={{ itemIndex: 0, rotulo: "Registro geral da sessão" }}
+              detalhe={[]}
+              geral
+              data={data}
+              salvos={registrosDoExercicio(registros, sessao.chave, 0)}
+              onRegistro={(serie, registro) => onRegistro(0, serie, registro)}
+              onSerieFeita={() => {}}
+            />
+          </ul>
+        )}
+
       {sessao.parametros && (
         <p className="tabular-data rounded-xl bg-white px-4 py-3 text-xs leading-relaxed whitespace-pre-line text-ink/70 ring-1 ring-ash">
           {sessao.parametros}
