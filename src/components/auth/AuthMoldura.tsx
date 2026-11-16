@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { FOTOS } from "@/lib/fotos";
+import { FotoFoco } from "@/components/ui/FotoFoco";
 import Link from "next/link";
 import { Marca } from "@/components/layout/Sidebar";
 
@@ -8,13 +9,12 @@ export function AuthMoldura({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col bg-bone lg:flex-row">
       <div className="relative isolate flex h-44 shrink-0 flex-col justify-between overflow-hidden bg-ink p-5 text-white sm:h-56 lg:h-auto lg:min-h-screen lg:w-[46%] lg:p-10">
-        <Image
-          src="/fotos/corrida-402.webp"
+        <FotoFoco
+          foto={FOTOS.corrida}
           alt=""
-          fill
           priority
           sizes="(min-width: 1024px) 46vw, 100vw"
-          className="foto-zoom -z-10 object-cover object-[50%_22%]"
+          className="foto-zoom -z-10"
         />
         <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/40 to-ink/30" />
         <Link href="/" aria-label="Voltar para o início">
