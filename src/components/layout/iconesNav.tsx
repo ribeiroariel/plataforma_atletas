@@ -44,6 +44,19 @@ export const IconeComparar = (
   </svg>
 );
 
+export const IconeHoje = (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <circle cx="12" cy="13.5" r="7.5" />
+    <path d="M12 9.5v4l2.5 2M9.5 3h5M12 3v3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const IconeSair = (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <path d="M10 4H6a2 2 0 00-2 2v12a2 2 0 002 2h4M15 8l4 4-4 4M19 12H9" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export const IconeFeedback = (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
     <path d="M9 18h6M10 21h4" strokeLinecap="round" />
@@ -52,5 +65,11 @@ export const IconeFeedback = (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </svg>
+);
+
+export const IconeTrocar = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M7 7h12l-3-3M17 17H5l3 3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );

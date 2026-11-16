@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import type { PontoSemana } from "@/lib/evolucao/agregarSemana";
 
-const AZUL = "#1C6DD0";
+const AZUL = "#F0481E";
 
 function formatarSemana(iso: string) {
   const [, mes, dia] = iso.split("-");
@@ -58,7 +58,7 @@ export function GraficoSemanal({
   const semDados = serie.length === 0;
 
   return (
-    <div className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-ash">
       <h3 className="mb-2 flex items-center gap-1.5 font-display text-base font-semibold text-track-night">
         {Icone && <Icone className="h-4 w-4 shrink-0" />}
         {titulo}
@@ -72,15 +72,15 @@ export function GraficoSemanal({
           <ResponsiveContainer width="100%" height="100%">
             {tipo === "barra" ? (
               <BarChart data={serie} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#90A4B8" strokeOpacity={0.2} />
+                <CartesianGrid vertical={false} stroke="#8B8F97" strokeOpacity={0.2} />
                 <XAxis
                   dataKey="semana"
                   tickFormatter={formatarSemana}
-                  tick={{ fontSize: 11, fill: "#90A4B8" }}
-                  axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
+                  tick={{ fontSize: 11, fill: "#8B8F97" }}
+                  axisLine={{ stroke: "#8B8F97", strokeOpacity: 0.3 }}
                   tickLine={false}
                 />
-                <YAxis tick={{ fontSize: 11, fill: "#90A4B8" }} axisLine={false} tickLine={false} width={40} />
+                <YAxis tick={{ fontSize: 11, fill: "#8B8F97" }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip
                   content={<TooltipPersonalizado unidade={unidade} />}
                   cursor={{ fill: AZUL, fillOpacity: 0.06 }}
@@ -95,18 +95,18 @@ export function GraficoSemanal({
                     <stop offset="100%" stopColor={AZUL} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="#90A4B8" strokeOpacity={0.2} />
+                <CartesianGrid vertical={false} stroke="#8B8F97" strokeOpacity={0.2} />
                 <XAxis
                   dataKey="semana"
                   tickFormatter={formatarSemana}
-                  tick={{ fontSize: 11, fill: "#90A4B8" }}
-                  axisLine={{ stroke: "#90A4B8", strokeOpacity: 0.3 }}
+                  tick={{ fontSize: 11, fill: "#8B8F97" }}
+                  axisLine={{ stroke: "#8B8F97", strokeOpacity: 0.3 }}
                   tickLine={false}
                 />
-                <YAxis tick={{ fontSize: 11, fill: "#90A4B8" }} axisLine={false} tickLine={false} width={40} />
+                <YAxis tick={{ fontSize: 11, fill: "#8B8F97" }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip
                   content={<TooltipPersonalizado unidade={unidade} />}
-                  cursor={{ stroke: "#90A4B8", strokeWidth: 1 }}
+                  cursor={{ stroke: "#8B8F97", strokeWidth: 1 }}
                 />
                 <Area
                   type="monotone"
@@ -114,8 +114,8 @@ export function GraficoSemanal({
                   stroke={AZUL}
                   strokeWidth={2}
                   fill={`url(#fill-${titulo})`}
-                  dot={{ r: 3, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
-                  activeDot={{ r: 5, fill: AZUL, stroke: "#F4F7FA", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: AZUL, stroke: "#F5F3EE", strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: AZUL, stroke: "#F5F3EE", strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               </AreaChart>

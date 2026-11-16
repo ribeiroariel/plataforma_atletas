@@ -2,133 +2,165 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { logout } from "@/lib/actions/auth";
 import { FotoPerfil } from "@/components/perfil/FotoPerfil";
+import { IconeSair, IconeTrocar } from "./iconesNav";
 
 export type ItemNav = {
   href: string;
   label: string;
   icon: React.ReactNode;
   exato?: boolean;
+  // Outros prefixos de rota que também deixam esse item aceso.
+  tambem?: string[];
 };
 
+export function Marca({ className = "" }: { className?: string }) {
+  return (
+    <span className={`flex items-center gap-2.5 ${className}`}>
+      <span aria-hidden className="flex h-7 w-7 items-end gap-[3px] rounded-[6px] bg-tartan p-[6px]">
+        <span className="h-2 w-[3px] rounded-full bg-white" />
+        <span className="h-3 w-[3px] rounded-full bg-white" />
+        <span className="h-full w-[3px] rounded-full bg-white" />
+      </span>
+      <span className="font-display text-lg leading-none font-extrabold tracking-wide text-white uppercase">
+        Treinos
+      </span>
+    </span>
+  );
+}
+
 export function Sidebar({
-  variante,
   titulo,
   nome,
   avatarUrl,
   itens,
+  troca,
 }: {
-  variante: "light" | "dark";
   titulo: string;
   nome: string;
   avatarUrl: string | null;
   itens: ItemNav[];
+  troca?: { href: string; label: string };
 }) {
   const pathname = usePathname();
-  const [aberto, setAberto] = useState(false);
-
-  const escuro = variante === "dark";
-  const base = escuro ? "bg-track-night text-white" : "bg-white text-track-night";
-  const borda = escuro ? "border-white/10" : "border-track-fog/20";
 
   function ativo(item: ItemNav) {
+    if (item.tambem?.some((p) => pathname.startsWith(p))) return true;
     return item.exato ? pathname === item.href : pathname.startsWith(item.href);
   }
 
-  const nav = (
-    <nav className="flex flex-col gap-1" aria-label="Navegação principal">
-      {itens.map((item) => {
-        const on = ativo(item);
-        // Item ativo ganha barra lateral + fundo destacado para ficar óbvio.
-        const corAtiva = escuro
-          ? "bg-white/10 text-white before:bg-sky-split"
-          : "bg-stadium-blue/10 text-stadium-blue before:bg-stadium-blue";
-        const corInativa = escuro
-          ? "text-white/70 hover:bg-white/5 before:bg-transparent"
-          : "text-track-night/80 hover:bg-lane-chalk before:bg-transparent";
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setAberto(false)}
-            aria-current={on ? "page" : undefined}
-            className={`relative flex items-center gap-3 rounded-[var(--radius-badge)] px-3 py-2 text-sm font-medium transition-colors before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stadium-blue/40 ${
-              on ? `${corAtiva} font-semibold` : corInativa
-            }`}
-          >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden>
-              {item.icon}
-            </span>
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
   return (
     <>
-      {/* Topo mobile */}
-      <div className={`flex items-center justify-between border-b ${borda} ${base} px-4 py-3 md:hidden`}>
+      {/* Topo — celular */}
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2.5 md:hidden">
+        <Marca />
         <div className="flex items-center gap-2">
+          {troca && (
+            <Link
+              href={troca.href}
+              className="rotulo flex min-h-[36px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-[10px] text-white transition-colors hover:bg-white/20"
+            >
+              {IconeTrocar}
+              {troca.label}
+            </Link>
+          )}
           <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={32} />
-          <span className="font-display text-sm font-bold">{titulo}</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setAberto((v) => !v)}
-          aria-label={aberto ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={aberto}
-          className={`flex items-center gap-2 rounded-[var(--radius-badge)] border ${borda} px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stadium-blue/40 ${
-            escuro ? "hover:bg-white/10" : "hover:bg-lane-chalk"
-          }`}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            {aberto ? (
-              <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-            )}
-          </svg>
-          Menu
-        </button>
-      </div>
-      {aberto && (
-        <div className={`border-b ${borda} ${base} px-3 py-3 md:hidden`}>
-          {nav}
-          <form action={logout} className="mt-2">
+          <form action={logout}>
             <button
               type="submit"
-              className={`w-full rounded-[var(--radius-badge)] border ${borda} px-3 py-2 text-sm`}
+              aria-label="Sair da conta"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
             >
-              Sair
+              {IconeSair}
             </button>
           </form>
         </div>
-      )}
+      </header>
 
-      {/* Sidebar desktop */}
-      <aside className={`hidden w-56 shrink-0 flex-col border-r ${borda} ${base} p-4 md:flex`}>
-        <div className="flex items-center gap-2 px-1 pb-4">
-          <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={40} />
-          <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold">{titulo}</p>
-            <p className={`truncate text-xs ${escuro ? "text-white/50" : "text-track-fog"}`}>{nome}</p>
-          </div>
+      {/* Abas — celular */}
+      <nav
+        aria-label="Navegação principal"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        {itens.map((item) => {
+          const on = ativo(item);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={on ? "page" : undefined}
+              className={`relative flex min-h-[60px] flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
+                on ? "text-white" : "text-white/45"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`absolute top-0 h-[3px] w-8 rounded-b-full bg-tartan transition-opacity ${on ? "opacity-100" : "opacity-0"}`}
+              />
+              <span className={on ? "text-tartan" : ""} aria-hidden>
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Lateral — computador */}
+      <aside className="raias sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink p-5 text-white md:flex">
+        <div className="pt-1 pb-8">
+          <Marca />
         </div>
-        {nav}
-        <form action={logout} className="mt-auto pt-4">
-          <button
-            type="submit"
-            className={`w-full rounded-[var(--radius-badge)] border ${borda} px-3 py-2 text-sm ${
-              escuro ? "hover:bg-white/10" : "hover:bg-lane-chalk"
-            }`}
+
+        <nav className="flex flex-col gap-1" aria-label="Navegação principal">
+          {itens.map((item) => {
+            const on = ativo(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={on ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-[var(--radius-badge)] px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-tartan focus-visible:outline-none ${
+                  on ? "bg-white text-ink" : "text-white/60 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className={on ? "text-tartan" : ""} aria-hidden>
+                  {item.icon}
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {troca && (
+          <Link
+            href={troca.href}
+            className="mt-auto mb-4 flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-badge)] border border-white/15 px-3 text-sm font-semibold text-white transition-colors hover:border-tartan hover:bg-tartan"
           >
-            Sair
-          </button>
-        </form>
+            {IconeTrocar}
+            {troca.label}
+          </Link>
+        )}
+
+        <div className={`flex items-center gap-3 border-t border-white/10 pt-4 ${troca ? "" : "mt-auto"}`}>
+          <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={38} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{nome || titulo}</p>
+            <p className="rotulo text-white/40">{titulo}</p>
+          </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              aria-label="Sair da conta"
+              title="Sair"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              {IconeSair}
+            </button>
+          </form>
+        </div>
       </aside>
     </>
   );

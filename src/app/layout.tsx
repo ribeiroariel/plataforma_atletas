@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Big_Shoulders, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Big_Shoulders, Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 const display = Big_Shoulders({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["600", "700", "800", "900"],
 });
 
-const body = Work_Sans({
+const body = Archivo({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const mono = IBM_Plex_Mono({

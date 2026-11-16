@@ -10,7 +10,7 @@ function calcularForca(senha: string): { nivel: 0 | 1 | 2 | 3; rotulo: string; c
 
   if (pontos <= 1) return { nivel: 1, rotulo: "Fraca", cor: "#C4524A" };
   if (pontos <= 3) return { nivel: 2, rotulo: "Média", cor: "#D9A441" };
-  return { nivel: 3, rotulo: "Forte", cor: "#1C6DD0" };
+  return { nivel: 3, rotulo: "Forte", cor: "#F0481E" };
 }
 
 export function MedidorForcaSenha({ senha }: { senha: string }) {
@@ -25,7 +25,7 @@ export function MedidorForcaSenha({ senha }: { senha: string }) {
           <span
             key={passo}
             className="h-1.5 flex-1 rounded-full transition-colors"
-            style={{ backgroundColor: passo <= nivel ? cor : "#90A4B833" }}
+            style={{ backgroundColor: passo <= nivel ? cor : "#8B8F9733" }}
           />
         ))}
       </div>

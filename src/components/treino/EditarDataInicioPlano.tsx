@@ -2,6 +2,7 @@
 
 import { useId, useState, useTransition } from "react";
 import { atualizarDataInicioPlano } from "@/lib/actions/plano";
+import { tituloDoPlano } from "@/lib/datas";
 
 export function EditarDataInicioPlano({
   trainingPlanId,
@@ -16,39 +17,42 @@ export function EditarDataInicioPlano({
 }) {
   const [valor, setValor] = useState(dataInicioAtual);
   const [pendente, iniciar] = useTransition();
-  const [mensagem, setMensagem] = useState("");
+  const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
   const inputId = useId();
 
   function salvar() {
-    setMensagem("");
+    setMensagem(null);
     iniciar(async () => {
       const r = await atualizarDataInicioPlano(trainingPlanId, athleteId, valor);
-      setMensagem("erro" in r ? r.erro : "Salvo");
+      setMensagem("erro" in r ? { texto: r.erro, erro: true } : { texto: "Salvo", erro: false });
     });
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="text-track-fog">{nomeArquivo.replace(/\.xlsx$/i, "").replace(/[_-]+/g, " ")}</span>
-      <label htmlFor={inputId} className="sr-only">
-        Início da Semana 1
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <label htmlFor={inputId} className="font-display min-w-0 flex-1 truncate text-lg leading-tight font-bold uppercase">
+        {tituloDoPlano(nomeArquivo)}
       </label>
       <input
         id={inputId}
         type="date"
         value={valor}
         onChange={(e) => setValor(e.target.value)}
-        className="min-h-[36px] rounded-[var(--radius-badge)] border border-white/20 bg-transparent px-2 text-sm text-white outline-none focus:border-stadium-blue"
+        className="tabular-data h-11 rounded-xl bg-bone px-3 text-sm text-ink ring-1 ring-ash outline-none focus:ring-2 focus:ring-ink"
       />
       <button
         type="button"
         onClick={salvar}
-        disabled={pendente || valor === dataInicioAtual}
-        className="rounded-[var(--radius-badge)] bg-stadium-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+        disabled={pendente || valor === dataInicioAtual || !valor}
+        className="h-11 rounded-xl bg-ink px-4 text-xs font-bold tracking-wide text-white uppercase transition-colors hover:bg-ink-3 disabled:opacity-30"
       >
-        Salvar
+        {pendente ? "Salvando…" : "Salvar"}
       </button>
-      {mensagem && <span className="text-xs text-track-fog">{mensagem}</span>}
+      {mensagem && (
+        <span aria-live="polite" className={`text-xs ${mensagem.erro ? "text-erro" : "text-ok"}`}>
+          {mensagem.texto}
+        </span>
+      )}
     </div>
   );
 }

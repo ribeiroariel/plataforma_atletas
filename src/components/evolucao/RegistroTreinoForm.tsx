@@ -22,9 +22,9 @@ export function RegistroTreinoForm() {
   const rotuloValor = tipo === "academia" ? "Volume (kg)" : "Tempo (min)";
 
   return (
-    <details className="rounded-[var(--radius-badge)] border border-track-fog/25 bg-white">
+    <details className="rounded-2xl bg-white ring-1 ring-ash">
       <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-track-night">
-        + Registrar treino manualmente
+        + Registrar um treino fora da planilha
       </summary>
       <form action={formAction} className="flex flex-col gap-3 border-t border-track-fog/15 px-4 py-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -20,9 +20,9 @@ export function ProgressoExercicios({ dados }: { dados: ProgressoExercicio[] }) 
   const exibidos = dados.slice(0, MAX_EXERCICIOS);
 
   return (
-    <div className="rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
+    <div className="raias rounded-2xl bg-deep-lane p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-display text-lg font-semibold text-white">Progresso por exercício</h2>
+        <h2 className="font-display text-2xl font-extrabold text-white uppercase">Progresso por exercício</h2>
         <span className="text-xs text-track-fog">Carga (kg) registrada, soma do dia</span>
       </div>
 
@@ -50,7 +50,7 @@ export function ProgressoExercicios({ dados }: { dados: ProgressoExercicio[] }) 
                         <Line
                           type="monotone"
                           dataKey="valor"
-                          stroke="#1C6DD0"
+                          stroke="#F0481E"
                           strokeWidth={1.5}
                           dot={false}
                           isAnimationActive={false}

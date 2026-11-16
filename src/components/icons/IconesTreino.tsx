@@ -63,7 +63,7 @@ export function IconeCardio({ className }: IconProps) {
       <path
         d="M6 10h2.4l1-2.4 1.6 4.8 1.2-2.4H16"
         fill="none"
-        stroke="#F4F7FA"
+        stroke="#F5F3EE"
         strokeWidth="1.3"
         strokeLinecap="round"
         strokeLinejoin="round"

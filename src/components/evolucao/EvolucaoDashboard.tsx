@@ -55,7 +55,7 @@ export function EvolucaoDashboard({ dados }: { dados: LinhaTrainingData[] }) {
               key={op.valor}
               type="button"
               onClick={() => setPeriodo(op.valor)}
-              className={`rounded-[var(--radius-badge)] px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`min-h-[40px] rounded-full px-4 text-sm font-semibold transition-colors ${
                 periodo === op.valor
                   ? "bg-stadium-blue text-white"
                   : "border border-track-fog/40 bg-white text-track-night hover:bg-lane-chalk"
@@ -72,13 +72,13 @@ export function EvolucaoDashboard({ dados }: { dados: LinhaTrainingData[] }) {
               key={t}
               type="button"
               onClick={() => setTipoGrafico(t)}
-              className={`rounded-[var(--radius-badge)] px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`min-h-[40px] rounded-full px-4 text-xs font-semibold transition-colors ${
                 tipoGrafico === t
                   ? "bg-deep-lane text-white"
                   : "border border-track-fog/40 bg-white text-track-night hover:bg-lane-chalk"
               }`}
             >
-              {t === "area" ? "Gráfico de área" : "Gráfico de barras"}
+              {t === "area" ? "Área" : "Barras"}
             </button>
           ))}
         </div>

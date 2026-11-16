@@ -35,7 +35,7 @@ export function CartaoResumo({
   const seta = semDadoAnterior ? "—" : positivo ? "▲" : "▼";
 
   return (
-    <div className="flex flex-col gap-1 rounded-[var(--radius-badge)] border border-track-fog/25 bg-white p-4">
+    <div className="flex flex-col gap-1 rounded-2xl bg-white p-4 ring-1 ring-ash">
       <div className="flex items-center gap-1.5 text-track-night">
         <Icone className="h-4 w-4 shrink-0" />
         <span className="text-xs text-track-fog">{titulo}</span>
@@ -53,7 +53,7 @@ export function CartaoResumo({
               <Line
                 type="monotone"
                 dataKey="total"
-                stroke="#90A4B8"
+                stroke="#8B8F97"
                 strokeWidth={1.5}
                 dot={false}
                 isAnimationActive={false}

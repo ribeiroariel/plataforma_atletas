@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { IconeComparar, IconeFeed, IconeFeedback, IconePessoas } from "@/components/layout/iconesNav";
+import { AppShell } from "@/components/layout/AppShell";
 
 export default async function TreinadorLayout({
   children,
@@ -18,23 +17,11 @@ export default async function TreinadorLayout({
     .eq("user_id", user?.id)
     .single();
 
-  const itens = [
-    { href: "/treinador", label: "Meus atletas", icon: IconePessoas, exato: true },
-    { href: "/treinador/comparar", label: "Comparar", icon: IconeComparar },
-    { href: "/feed", label: "Feed", icon: IconeFeed },
-    { href: "/feedback", label: "Feedback", icon: IconeFeedback },
-  ];
+  const { data: comoAtleta } = await supabase.from("athletes").select("id").eq("user_id", user?.id ?? "").maybeSingle();
 
   return (
-    <div className="flex flex-1 flex-col md:flex-row">
-      <Sidebar
-        variante="dark"
-        titulo="Treinador"
-        nome={profile?.nome ?? "Treinador"}
-        avatarUrl={profile?.avatar_url ?? null}
-        itens={itens}
-      />
-      <div className="flex flex-1 flex-col">{children}</div>
-    </div>
+    <AppShell alternar={!!comoAtleta} papel="coach" nome={profile?.nome ?? "Treinador"} avatarUrl={profile?.avatar_url ?? null}>
+      {children}
+    </AppShell>
   );
 }

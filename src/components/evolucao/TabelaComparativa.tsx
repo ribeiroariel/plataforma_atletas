@@ -20,8 +20,8 @@ export function TabelaComparativa({ dados }: { dados: LinhaTrainingData[] }) {
   const semanas = [...new Set(linhas.flatMap((l) => l.serie.map((p) => p.semana)))].sort();
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-badge)] border border-white/10 bg-deep-lane p-4">
-      <h2 className="font-display text-lg font-semibold text-white">Últimas semanas</h2>
+    <div className="overflow-x-auto rounded-2xl bg-deep-lane p-4 sm:p-5">
+      <h2 className="font-display text-2xl font-extrabold text-white uppercase">Últimas semanas</h2>
       <table className="mt-3 w-full min-w-[420px] text-sm">
         <thead>
           <tr className="text-left text-xs tracking-wide text-track-fog uppercase">

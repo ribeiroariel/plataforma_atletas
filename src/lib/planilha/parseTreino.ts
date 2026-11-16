@@ -14,7 +14,8 @@ export type BlocoTexto =
   | { tipo: "subtitulo"; texto: string }
   | { tipo: "paragrafo"; texto: string }
   | { tipo: "item-numerado"; texto: string; detalhe: string[] }
-  | { tipo: "item-lista"; texto: string }
+  // colado: linha escrita como "-Exercício" (traço grudado na palavra).
+  | { tipo: "item-lista"; texto: string; colado?: boolean }
   | { tipo: "total"; texto: string };
 
 export type DiaSemana = { chave: string; dia: string; blocos: BlocoTexto[]; descanso: boolean };
@@ -71,15 +72,35 @@ const PADRAO_INTERVALO_PISTA = /\d+(?:[.,]\d+)?\s*[x×]\s*\d+(?:[.,]\d+)?\s*(km|
 //  - cada parágrafo solto que pareça um tiro de pista (padrão NxDDDm);
 //  - se a sessão não tiver nenhum item desses, a própria sessão vira UMA
 //    unidade (itemIndex 0), rotulada pelo título/resumo dela.
+//
+// ÍNDICES ESTÁVEIS: os itens "colados" ("-Exercício", reconhecidos só mais
+// tarde) são numerados numa faixa própria, a partir de 100, em vez de entrar
+// na contagem 0, 1, 2... dos demais. Assim nenhum índice que já existia muda
+// de dono e os registros antigos em exercise_logs continuam no exercício
+// certo (inclusive o registro "geral" de índice 0 das sessões que antes não
+// tinham nenhum item reconhecido).
+export const INDICE_BASE_COLADO = 100;
+
+// "Stiff unilateral com halter: 2x4-5 cada perna, pausa 90'';" -> nome do
+// exercício + a prescrição que vem depois dos dois-pontos.
+function separarNomeEPrescricao(texto: string): { rotulo: string; detalhe?: string } {
+  const limpo = texto.replace(/[;.]\s*$/, "").trim();
+  const partes = limpo.match(/^([^:]{3,70}):\s+(.+)$/);
+  return partes ? { rotulo: partes[1].trim(), detalhe: partes[2].trim() } : { rotulo: limpo };
+}
+
 export function unidadesRegistraveis(sessao: DiaSemana | BlocoSessao): UnidadeRegistravel[] {
   const itens: UnidadeRegistravel[] = [];
+  let legados = 0;
+  let colados = 0;
   for (const bloco of sessao.blocos) {
     if (bloco.tipo === "item-numerado") {
-      itens.push({ itemIndex: itens.length, rotulo: bloco.texto, detalhe: bloco.detalhe.join(" ") });
+      itens.push({ itemIndex: legados++, rotulo: bloco.texto, detalhe: bloco.detalhe.join(" ") });
     } else if (bloco.tipo === "item-lista") {
-      itens.push({ itemIndex: itens.length, rotulo: bloco.texto });
+      const itemIndex = bloco.colado ? INDICE_BASE_COLADO + colados++ : legados++;
+      itens.push({ itemIndex, ...separarNomeEPrescricao(bloco.texto) });
     } else if (bloco.tipo === "paragrafo" && PADRAO_INTERVALO_PISTA.test(bloco.texto.trim())) {
-      itens.push({ itemIndex: itens.length, rotulo: bloco.texto });
+      itens.push({ itemIndex: legados++, rotulo: bloco.texto });
     }
   }
   if (itens.length > 0) return itens;
@@ -90,6 +111,50 @@ export function unidadesRegistraveis(sessao: DiaSemana | BlocoSessao): UnidadeRe
       : (sessao.blocos.find((b) => b.tipo === "paragrafo" || b.tipo === "subtitulo")?.texto ??
         sessao.dia);
   return [{ itemIndex: 0, rotulo: fallback }];
+}
+
+function ehRegistravel(bloco: BlocoTexto): boolean {
+  return (
+    bloco.tipo === "item-numerado" ||
+    bloco.tipo === "item-lista" ||
+    (bloco.tipo === "paragrafo" && PADRAO_INTERVALO_PISTA.test(bloco.texto.trim()))
+  );
+}
+
+// O "roteiro" de uma sessão: os blocos de texto na ordem da planilha, com os
+// exercícios já casados com sua unidade registrável (mesmo itemIndex de
+// unidadesRegistraveis — as duas funções PRECISAM concordar, é esse índice
+// que vira chave em exercise_logs). Serve pra tela mostrar instrução e campo
+// de registro juntos, em vez de listar o treino duas vezes.
+export type ItemRoteiro =
+  | { tipo: "texto"; bloco: BlocoTexto }
+  | { tipo: "exercicio"; unidade: UnidadeRegistravel; detalhe: string[]; geral: boolean };
+
+export function roteiroDaSessao(sessao: DiaSemana | BlocoSessao): ItemRoteiro[] {
+  const unidades = unidadesRegistraveis(sessao);
+  const itens: ItemRoteiro[] = [];
+  let indice = 0;
+
+  for (const bloco of sessao.blocos) {
+    if (ehRegistravel(bloco)) {
+      const unidade = unidades[indice++];
+      if (!unidade) continue;
+      itens.push({
+        tipo: "exercicio",
+        unidade,
+        detalhe: bloco.tipo === "item-numerado" ? bloco.detalhe : unidade.detalhe ? [unidade.detalhe] : [],
+        geral: false,
+      });
+    } else {
+      itens.push({ tipo: "texto", bloco });
+    }
+  }
+
+  // Sessão sem nenhum item listado: a sessão inteira vira um registro só.
+  if (indice === 0 && unidades[0]) {
+    itens.push({ tipo: "exercicio", unidade: unidades[0], detalhe: [], geral: true });
+  }
+  return itens;
 }
 
 function normalizar(texto: string) {
@@ -124,6 +189,11 @@ export function parseCelula(textoOriginal: string): BlocoTexto[] {
 
     const itemNumerado = linha.match(/^(\d+)\.\s+(.*)/);
     const itemLista = linha.match(/^[•\-]\s+(.*)/);
+    // "-Levantamento terra: ..." (traço grudado): também é um exercício. Só
+    // não vale logo depois de um item numerado, onde uma linha assim costuma
+    // ser observação de técnica daquele exercício.
+    const itemColado = linha.match(/^[\-–—](\p{L}.*)/u);
+    const anterior = blocos[blocos.length - 1];
     const total = /^total\s*:/i.test(linha);
     const subtitulo = linha.length < 40 && /:$/.test(linha) && !/\d/.test(linha);
     const atividadeExtra = RE_ATIVIDADE_EXTRA.test(linha);
@@ -134,6 +204,8 @@ export function parseCelula(textoOriginal: string): BlocoTexto[] {
       blocos.push({ tipo: "item-numerado", texto: itemNumerado[2], detalhe: [] });
     } else if (itemLista) {
       blocos.push({ tipo: "item-lista", texto: itemLista[1] });
+    } else if (itemColado && anterior?.tipo !== "item-numerado") {
+      blocos.push({ tipo: "item-lista", texto: itemColado[1].trim(), colado: true });
     } else if (subtitulo) {
       blocos.push({ tipo: "subtitulo", texto: linha.replace(/:$/, "") });
     } else if (atividadeExtra) {
@@ -199,7 +271,7 @@ function parseGradeDeSemana(linhas: string[][], indiceCabecalho: number): ModoSe
     const dias: DiaSemana[] = [];
     for (let col = 1; col < cabecalho.length; col++) {
       const conteudo = String(linha[col] ?? "").trim();
-      const descanso = /^descanso$/i.test(conteudo);
+      const descanso = /^(descanso|folga|off|livre)\.?$/i.test(conteudo);
       dias.push({
         chave: `s${indiceSemana}-d${col}`,
         dia: String(cabecalho[col] ?? ""),

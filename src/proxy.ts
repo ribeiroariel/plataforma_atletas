@@ -54,7 +54,21 @@ export async function proxy(request: NextRequest) {
   }
 
   if (path.startsWith("/atleta") && papel !== "athlete") {
-    return NextResponse.redirect(new URL(rotaPapel(papel), request.url));
+    // Treinador que também tem cadastro de atleta pode ver o próprio lado de
+    // atleta (botão "Ver como atleta"); os demais voltam pro seu painel.
+    const { data: atleta } = await supabase.from("athletes").select("id").eq("user_id", user.id).maybeSingle();
+    if (!atleta) {
+      return NextResponse.redirect(new URL(rotaPapel(papel), request.url));
+    }
+  }
+
+  // Lembra em qual lado a pessoa está, pro feed/feedback mostrarem o menu certo.
+  if (path.startsWith("/atleta") || path.startsWith("/treinador")) {
+    response.cookies.set("visao", path.startsWith("/atleta") ? "athlete" : "coach", {
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 30,
+    });
   }
 
   if (path.startsWith("/treinador") && papel !== "coach") {

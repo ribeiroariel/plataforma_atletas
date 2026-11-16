@@ -39,7 +39,7 @@ export function RedefinirSenhaForm() {
       <button
         type="submit"
         disabled={naoConferem}
-        className="mt-1 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-2 font-medium text-white transition-colors hover:bg-deep-lane disabled:opacity-50"
+        className="mt-1 rounded-[var(--radius-badge)] bg-stadium-blue px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-tartan-escuro disabled:opacity-50"
       >
         Salvar nova senha
       </button>
