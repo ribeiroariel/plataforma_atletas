@@ -1,11 +1,14 @@
 import { dataCurta } from "@/lib/datas";
+import type { FeedbackSessao } from "@/lib/treino/logs";
 import type { SessaoTela } from "@/lib/treino/montarSessoes";
+import { estimar1RM } from "@/lib/treino/rm";
 import {
   formatarNumero,
   minutosParaPace,
   normalizarRotulo,
   registrosDaSessao,
   registrosDoExercicio,
+  segundosTexto,
   volumeDaSessao,
   type RegistroExercicio,
   type RegistroMapa,
@@ -19,8 +22,10 @@ function valorDoRegistro(r: RegistroExercicio): string {
       return `${formatarNumero(r.valor, 2)} km`;
     case "pace":
       return `${minutosParaPace(r.valor)} /km`;
+    case "corporal":
+      return `${r.valor} reps`;
     case "tempo":
-      return r.valor < 2 ? `${Math.round(r.valor * 60)} s` : `${formatarNumero(r.valor)} min`;
+      return r.valor < 2 ? `${segundosTexto(r.valor * 60)} s` : `${formatarNumero(r.valor)} min`;
   }
 }
 
@@ -38,11 +43,13 @@ export function SessaoLeitura({
   anterior,
   registros,
   concluida,
+  feedback,
 }: {
   sessao: SessaoTela;
   anterior?: SessaoTela;
   registros: RegistroMapa;
   concluida: boolean;
+  feedback?: FeedbackSessao;
 }) {
   const exercicios = sessao.roteiro.filter((i) => i.tipo === "exercicio");
   const comRegistro = exercicios.filter(
@@ -107,6 +114,31 @@ export function SessaoLeitura({
           ))}
         </dl>
 
+        {feedback && (
+          <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-white/10 px-5 py-3 text-sm">
+            <span>
+              <span className="rotulo mr-2 text-white/45">Esforço</span>
+              <span className={`font-display text-xl font-extrabold ${feedback.esforco >= 9 ? "text-sinal" : ""}`}>
+                {feedback.esforco}/10
+              </span>
+            </span>
+            {feedback.sono !== null && (
+              <span>
+                <span className="rotulo mr-2 text-white/45">Sono</span>
+                <span className="font-display text-xl font-extrabold">{feedback.sono}/5</span>
+              </span>
+            )}
+            {feedback.dor !== null && (
+              <span>
+                <span className="rotulo mr-2 text-white/45">Dor</span>
+                <span className={`font-display text-xl font-extrabold ${feedback.dor >= 6 ? "text-sinal" : ""}`}>
+                  {feedback.dor}/10
+                </span>
+              </span>
+            )}
+          </p>
+        )}
+
         {datas.length > 0 && (
           <p className="tabular-data border-t border-white/10 px-5 py-3 text-xs text-white/55">
             Registrado em {datas.map(dataCurta).join(", ")}
@@ -153,6 +185,13 @@ export function SessaoLeitura({
           const kgAntes = somaKg(antes);
           const dif = kgAgora > 0 && kgAntes > 0 ? kgAgora - kgAntes : null;
           const ehCarga = series.some((s) => feitos[s].metrica === "kg");
+          const ehTiro = series.length > 1 && series.every((s) => feitos[s].metrica === "tempo");
+          const porSerie = ehCarga || ehTiro || series.some((s) => feitos[s].metrica === "corporal");
+          const tempos = ehTiro ? series.map((s) => feitos[s].valor * 60) : [];
+          const melhor1RM = series.reduce(
+            (max, s) => (feitos[s].metrica === "kg" && feitos[s].reps ? Math.max(max, estimar1RM(feitos[s].valor, feitos[s].reps ?? 0)) : max),
+            0,
+          );
           const chips = item.detalhe
             .flatMap((l) => l.split(/\||,\s+/))
             .map((c) => c.trim())
@@ -193,13 +232,25 @@ export function SessaoLeitura({
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       {series.map((s) => (
                         <span key={s} className="flex items-baseline gap-1.5 rounded-lg bg-ok/10 px-2.5 py-1.5">
-                          {ehCarga && <span className="rotulo text-[9px] text-ok">S{s}</span>}
+                          {porSerie && <span className="rotulo text-[9px] text-ok">{ehTiro ? "T" : "S"}{s}</span>}
                           <span className="font-display text-xl leading-none font-extrabold tabular-nums">
                             {valorDoRegistro(feitos[s])}
+                            {feitos[s].reps ? <span className="text-sm text-ink/55">×{feitos[s].reps}</span> : null}
                           </span>
                         </span>
                       ))}
                       {ehCarga && <span className="rotulo ml-1 text-cinza">kg</span>}
+                      {ehTiro && (
+                        <span className="tabular-data ml-2 text-[11px] text-cinza">
+                          melhor {segundosTexto(Math.min(...tempos))} s · média{" "}
+                          {segundosTexto(tempos.reduce((t, v) => t + v, 0) / tempos.length)} s · queda{" "}
+                          {tempos[tempos.length - 1] - tempos[0] >= 0 ? "+" : "−"}
+                          {segundosTexto(Math.abs(tempos[tempos.length - 1] - tempos[0]))} s
+                        </span>
+                      )}
+                      {melhor1RM > 0 && (
+                        <span className="tabular-data ml-2 text-[11px] text-cinza">1RM est. {formatarNumero(melhor1RM)} kg</span>
+                      )}
                     </div>
                   ) : (
                     <p className="mt-2 text-xs text-cinza">Sem registro do atleta.</p>

@@ -24,7 +24,11 @@ export type DiaResumo = {
   sessionKey?: string;
 };
 
-export type Alerta = { tipo: "mesociclo" | "inativo" | "atrasado" | "sem-plano"; texto: string; grave: boolean };
+export type Alerta = {
+  tipo: "mesociclo" | "inativo" | "atrasado" | "sem-plano" | "sobrecarga";
+  texto: string;
+  grave: boolean;
+};
 
 export type Recado = { id: string; athleteId: string; planoId: string; texto: string; data: string };
 
@@ -48,6 +52,8 @@ export type ResumoAtleta = {
   diasSemAtividade: number | null;
   kgSemana: number;
   kmSemana: number;
+  // Média do esforço (1–10) nos últimos treinos com esforço informado.
+  esforcoRecente: number | null;
   alertas: Alerta[];
 };
 
@@ -103,7 +109,7 @@ export async function resumirAtletas(
 
   const segunda = segundaDaSemana(hoje);
 
-  const [{ data: planos }, { data: conclusoes }, { data: logs }, { data: dadosSemana }, { data: ultimos }, { data: obs }] =
+  const [{ data: planos }, { data: conclusoes }, { data: logs }, { data: dadosSemana }, { data: ultimos }, { data: obs }, { data: esforcos }] =
     await Promise.all([
       supabase
         .from("training_plans")
@@ -120,6 +126,13 @@ export async function resumirAtletas(
         .in("athlete_id", ids)
         .order("data", { ascending: false })
         .limit(apenasId ? 60 : 12),
+      // Tabela nova (migração de 16/11/2026): se ainda não existe, vem vazio.
+      supabase
+        .from("session_feedback")
+        .select("athlete_id, esforco, dor, data")
+        .in("athlete_id", ids)
+        .order("data", { ascending: false })
+        .limit(400),
     ]);
 
   const atletas = await Promise.all(
@@ -176,7 +189,23 @@ export async function resumirAtletas(
         .reduce((s, d) => s + Number(d.valor), 0);
       const kmSemana = daSemana.filter((d) => d.variavel === "distancia").reduce((s, d) => s + Number(d.valor), 0);
 
+      // Sinais de sobrecarga: esforço lá em cima por três treinos seguidos,
+      // ou dor forte no treino mais recente.
+      const doAtleta = (esforcos ?? []).filter((e) => e.athlete_id === a.id).slice(0, 3);
+      const esforcoRecente = doAtleta.length ? doAtleta.reduce((t, e) => t + e.esforco, 0) / doAtleta.length : null;
+      const dorRecente = doAtleta[0]?.dor ?? null;
+
       const alertas: Alerta[] = [];
+      if (dorRecente !== null && dorRecente >= 7) {
+        alertas.push({ tipo: "sobrecarga", texto: `Relatou dor ${dorRecente}/10 no último treino`, grave: true });
+      }
+      if (doAtleta.length === 3 && esforcoRecente !== null && esforcoRecente >= 9) {
+        alertas.push({
+          tipo: "sobrecarga",
+          texto: `Esforço médio ${esforcoRecente.toFixed(1).replace(".", ",")}/10 nos 3 últimos treinos`,
+          grave: false,
+        });
+      }
       if (!ativo) {
         alertas.push({ tipo: "sem-plano", texto: "Ainda sem nenhum plano enviado", grave: false });
       } else {
@@ -217,6 +246,7 @@ export async function resumirAtletas(
         diasSemAtividade,
         kgSemana,
         kmSemana,
+        esforcoRecente,
         alertas,
       };
     }),

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -23,6 +23,15 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Plataforma de Treinamento",
   description: "Acompanhamento de treinos para atletas e treinador",
+  applicationName: "Treinos",
+  // No iPhone, "Adicionar à Tela de Início" abre em tela cheia.
+  appleWebApp: { capable: true, title: "Treinos", statusBarStyle: "black-translucent" },
+};
+
+// Cor da barra do sistema no celular, igual ao topo escuro do site.
+export const viewport: Viewport = {
+  themeColor: "#0d0f12",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

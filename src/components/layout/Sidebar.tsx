@@ -13,6 +13,9 @@ export type ItemNav = {
   exato?: boolean;
   // Outros prefixos de rota que também deixam esse item aceso.
   tambem?: string[];
+  // No celular, fica como ícone no topo em vez de ocupar uma aba embaixo
+  // (a barra de baixo comporta cinco).
+  soTopo?: boolean;
 };
 
 export function Marca({ className = "" }: { className?: string }) {
@@ -65,6 +68,21 @@ export function Sidebar({
               {troca.label}
             </Link>
           )}
+          {itens
+            .filter((item) => item.soTopo)
+            .map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                title={item.label}
+                className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10 ${
+                  ativo(item) ? "text-tartan" : "text-white/60 hover:text-white"
+                }`}
+              >
+                {item.icon}
+              </Link>
+            ))}
           <FotoPerfil nome={nome} avatarUrl={avatarUrl} tamanho={32} />
           <form action={logout}>
             <button
@@ -83,7 +101,7 @@ export function Sidebar({
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        {itens.map((item) => {
+        {itens.filter((item) => !item.soTopo).map((item) => {
           const on = ativo(item);
           return (
             <Link

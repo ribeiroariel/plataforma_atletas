@@ -2,25 +2,26 @@ import { Sidebar, type ItemNav } from "./Sidebar";
 import {
   IconeCalendario,
   IconeComparar,
-  IconeFeed,
   IconeFeedback,
+  IconeFerramentas,
   IconeGrafico,
   IconeHoje,
   IconePessoas,
+  IconeTrofeu,
 } from "./iconesNav";
 
 const ITENS_ATLETA: ItemNav[] = [
   { href: "/atleta", label: "Hoje", icon: IconeHoje, exato: true, tambem: ["/atleta/treinos"] },
   { href: "/atleta/agenda", label: "Agenda", icon: IconeCalendario },
-  { href: "/atleta/evolucao", label: "Evolução", icon: IconeGrafico },
-  { href: "/feed", label: "Feed", icon: IconeFeed },
-  { href: "/feedback", label: "Ideias", icon: IconeFeedback },
+  { href: "/atleta/evolucao", label: "Evolução", icon: IconeGrafico, tambem: ["/atleta/exercicio"] },
+  { href: "/atleta/provas", label: "Provas", icon: IconeTrofeu },
+  { href: "/atleta/ferramentas", label: "Contas", icon: IconeFerramentas },
+  { href: "/feedback", label: "Ideias", icon: IconeFeedback, soTopo: true },
 ];
 
 const ITENS_TREINADOR: ItemNav[] = [
   { href: "/treinador", label: "Atletas", icon: IconePessoas, exato: true, tambem: ["/treinador/atletas"] },
   { href: "/treinador/comparar", label: "Comparar", icon: IconeComparar },
-  { href: "/feed", label: "Feed", icon: IconeFeed },
   { href: "/feedback", label: "Ideias", icon: IconeFeedback },
 ];
 

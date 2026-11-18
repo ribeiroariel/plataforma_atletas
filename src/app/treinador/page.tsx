@@ -5,6 +5,7 @@ import { dataCurta, diaDaSemanaLongo, diaDoMes, hojeBrasilIso, mesLongo, tituloD
 import { formatarNumero } from "@/lib/treino/registros";
 import { GradeAtletas, type CartaoAtleta } from "@/components/treinador/GradeAtletas";
 import { Avatar, LegendaEstados } from "@/components/treinador/pecas";
+import { buscarProvas, diasAte, textoContagem } from "@/lib/treino/provas";
 
 export default async function TreinadorPage() {
   const supabase = await createClient();
@@ -32,6 +33,8 @@ export default async function TreinadorPage() {
     })
     .sort((x, y) => Number(y.grave) - Number(x.grave));
   const porId = new Map(atletas.map((a) => [a.id, a]));
+  const { provas } = await buscarProvas(supabase, atletas.map((a) => a.id));
+  const proximasProvas = provas.filter((p) => p.data >= hoje).slice(0, 8);
 
   const cartoes: CartaoAtleta[] = atletas.map((a) => ({
     id: a.id,
@@ -127,6 +130,42 @@ export default async function TreinadorPage() {
               </div>
               <GradeAtletas atletas={cartoes} hoje={hoje} />
             </section>
+
+            {proximasProvas.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <h2 className="font-display text-2xl font-extrabold uppercase">Próximas provas</h2>
+                <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {proximasProvas.map((p) => {
+                    const atleta = porId.get(p.athleteId);
+                    const dias = diasAte(p.data, hoje);
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          href={`/treinador/atletas/${p.athleteId}`}
+                          className="flex h-full items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-ash transition-colors hover:ring-ink/30"
+                        >
+                          <Avatar nome={atleta?.nome ?? "?"} url={atleta?.avatarUrl ?? null} tamanho={40} />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-display truncate text-lg leading-tight font-bold uppercase">{p.nome}</p>
+                            <p className="tabular-data truncate text-[11px] text-cinza">
+                              {atleta?.nome.split(" ")[0]} · {dataCurta(p.data)}
+                              {p.local ? ` · ${p.local}` : ""}
+                            </p>
+                          </div>
+                          <span
+                            className={`rotulo shrink-0 rounded-full px-3 py-1.5 text-[10px] ${
+                              dias <= 7 ? "bg-tartan text-white" : "bg-bone text-ink"
+                            }`}
+                          >
+                            {textoContagem(dias)}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
 
             <section className="flex flex-col gap-3">
               <h2 className="font-display text-2xl font-extrabold uppercase">Últimos recados</h2>
