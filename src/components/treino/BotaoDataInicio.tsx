@@ -44,7 +44,7 @@ export function BotaoDataInicio({
             : "bg-tartan text-white hover:bg-tartan/90"
         }`}
       >
-        {dataInicio ? `Início: ${dataCurta(dataInicio)} · alterar` : "Definir data de início"}
+        {dataInicio ? `Começa em ${dataCurta(dataInicio)} · alterar` : "Definir data de início"}
       </button>
     );
   }
@@ -52,7 +52,7 @@ export function BotaoDataInicio({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor={inputId} className="rotulo text-cinza">
-        Semana 1 começa em
+        Atleta começa em
       </label>
       <input
         id={inputId}

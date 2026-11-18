@@ -60,10 +60,9 @@ export async function montarAgenda(supabase: SupabaseClient, athleteId: string):
       try {
         const treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
         if (treino.tipo !== "semana") return [];
-        return mapearSessoesParaCalendario(treino, plano.data_inicio ?? plano.data_criacao).map((s) => ({
-          ...s,
-          planoId: plano.id,
-        }));
+        return mapearSessoesParaCalendario(treino, plano.data_inicio ?? plano.data_criacao, plano.data_inicio)
+          .filter((s) => !s.antesDoInicio)
+          .map((s) => ({ ...s, planoId: plano.id }));
       } catch {
         return [];
       }

@@ -49,8 +49,9 @@ export default async function CalendarioPage({
             <div>
               <h2 className="font-display text-2xl font-extrabold uppercase">Início de cada plano</h2>
               <p className="mt-1 text-sm text-cinza">
-                A data em que a Semana 1 começa de verdade. Mudar aqui reposiciona todos os dias do plano no calendário
-                (do atleta também).
+                O dia em que o atleta começa o plano. A Semana 1 segue os dias da semana da planilha: se ele começar
+                numa quarta, a segunda e a terça daquela semana ficam fora do plano. Escolher uma data em outra
+                semana empurra o plano inteiro.
               </p>
             </div>
             <div className="flex flex-col divide-y divide-ash">

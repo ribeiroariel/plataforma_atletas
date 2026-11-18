@@ -17,6 +17,8 @@ export type SessaoTela = {
   titulo: string;
   nota?: string; // ex.: "~75-85 min"
   descanso: boolean;
+  // Antes da data de início definida: fora do plano (tratado como sem treino).
+  antesDoInicio?: boolean;
   data?: string; // yyyy-mm-dd, só no modo semana
   roteiro: ItemRoteiro[];
   parametros?: string;
@@ -49,8 +51,8 @@ function abreviar(dia: string): string {
   return limpo.length <= 3 ? limpo : limpo.slice(0, 3);
 }
 
-export function gruposDaSemana(treino: ModoSemana, dataInicio: string): GrupoTela[] {
-  const datas = new Map(mapearSessoesParaCalendario(treino, dataInicio).map((s) => [s.sessionKey, s.data]));
+export function gruposDaSemana(treino: ModoSemana, dataInicio: string, apartirDe?: string | null): GrupoTela[] {
+  const mapeadas = new Map(mapearSessoesParaCalendario(treino, dataInicio, apartirDe).map((s) => [s.sessionKey, s]));
 
   return treino.semanas.map((semana, i) => {
     const linhas = semana.rotulo.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -63,17 +65,19 @@ export function gruposDaSemana(treino: ModoSemana, dataInicio: string): GrupoTel
       subtitulo: curto ? undefined : linhas.slice(1).join(" · ") || undefined,
       sessoes: semana.dias.map((dia) => {
         // Célula vazia na planilha = dia sem treino, igual a descanso.
-        const livre = dia.descanso || dia.blocos.length === 0;
+        const antesDoInicio = !!mapeadas.get(dia.chave)?.antesDoInicio;
+        const livre = antesDoInicio || dia.descanso || dia.blocos.length === 0;
         const cabecalho = cabecalhoDoDia(dia.blocos);
         const roteiro = livre ? [] : roteiroDaSessao(dia);
         return {
           chave: dia.chave,
           rotuloCurto: abreviar(dia.dia),
           rotulo: dia.dia,
-          titulo: livre ? "Descanso" : cabecalho.titulo,
+          titulo: antesDoInicio ? "Antes do início" : livre ? "Descanso" : cabecalho.titulo,
           nota: cabecalho.nota,
           descanso: livre,
-          data: datas.get(dia.chave),
+          antesDoInicio,
+          data: mapeadas.get(dia.chave)?.data,
           roteiro: cabecalho.consumiuPrimeiro && roteiro[0]?.tipo === "texto" ? roteiro.slice(1) : roteiro,
         };
       }),

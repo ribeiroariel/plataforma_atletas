@@ -25,33 +25,43 @@ export function arredondarCarga(kg: number, passo = 2.5): number {
   return Math.round(kg / passo) * passo;
 }
 
-export const ANILHAS_PADRAO = [25, 20, 15, 10, 5, 2.5, 1.25];
+// Anilhas disponíveis na academia (kg).
+export const ANILHAS_PADRAO = [20, 15, 10, 5, 2.5];
 
 export type Montagem = {
-  // Anilhas de UM lado da barra, da maior pra menor.
+  // Anilhas de UM lado da barra, da maior pra menor (a maior vai mais perto
+  // do centro).
   porLado: number[];
-  // Carga realmente montada (pode ser menor que a pedida se não fechar).
+  // Carga que fica de fato na barra.
   montada: number;
-  // Quanto ficou faltando pra chegar na carga pedida.
-  sobra: number;
+  // Quanto a montagem passou da carga pedida (quando não fecha exato, arredonda
+  // pra CIMA até a próxima carga possível). 0 = fechou exato.
+  acima: number;
 };
 
-// Quais anilhas colocar de cada lado pra chegar numa carga total.
+// Quais anilhas colocar de cada lado pra chegar numa carga total. Quando a
+// conta não fecha com as anilhas que existem, sobe até a próxima carga que
+// dá pra montar (ex.: 62 kg na barra de 20 -> 62,5 kg... e com só 2,5 como
+// menor anilha, o passo é 5 kg: 62 -> 65).
 export function montarBarra(cargaTotal: number, barra = 20, anilhas: number[] = ANILHAS_PADRAO): Montagem {
   const porLado: number[] = [];
-  if (!(cargaTotal > barra)) return { porLado, montada: Math.min(cargaTotal, barra), sobra: 0 };
+  if (!(cargaTotal > barra)) return { porLado, montada: barra, acima: Math.max(0, barra - cargaTotal) };
 
-  // Trabalha em gramas pra não acumular erro de vírgula (1,25 + 2,5 ...).
-  let restante = Math.round(((cargaTotal - barra) / 2) * 1000);
-  for (const anilha of [...anilhas].sort((a, b) => b - a)) {
+  // Trabalha em gramas pra não acumular erro de vírgula.
+  const ordenadas = [...anilhas].sort((x, y) => y - x);
+  const menor = Math.round(ordenadas[ordenadas.length - 1] * 1000);
+  const precisaPorLado = Math.round(((cargaTotal - barra) / 2) * 1000);
+  let restante = Math.ceil(precisaPorLado / menor) * menor;
+
+  for (const anilha of ordenadas) {
     const g = Math.round(anilha * 1000);
     while (restante >= g) {
       porLado.push(anilha);
       restante -= g;
     }
   }
-  const montada = barra + 2 * porLado.reduce((s, a) => s + a, 0);
-  return { porLado, montada, sobra: Math.round((cargaTotal - montada) * 100) / 100 };
+  const montada = barra + 2 * porLado.reduce((t, x) => t + x, 0);
+  return { porLado, montada, acima: Math.round((montada - cargaTotal) * 100) / 100 };
 }
 
 // Junta anilhas repetidas: [20, 20, 5] -> "2×20 + 5".
