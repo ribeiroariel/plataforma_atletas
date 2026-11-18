@@ -111,7 +111,7 @@ export default async function AtletaPage() {
     if (arquivo) {
       try {
         const treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
-        if (treino.tipo === "semana") grupos = gruposDaSemana(treino, ativo.data_inicio ?? ativo.data_criacao);
+        if (treino.tipo === "semana") grupos = gruposDaSemana(treino, ativo.data_inicio ?? ativo.data_criacao, ativo.data_inicio);
         else if (treino.tipo === "blocos") grupos = gruposDosBlocos(treino);
       } catch {
         grupos = null;
@@ -284,7 +284,7 @@ export default async function AtletaPage() {
                         {s.data ? diaDoMes(s.data) : ""}
                       </span>
                       <span className="line-clamp-2 min-h-[2rem] text-xs leading-tight opacity-75">
-                        {s.descanso ? "Descanso" : s.titulo}
+                        {s.descanso && !s.antesDoInicio ? "Descanso" : s.titulo}
                       </span>
                     </>
                   );

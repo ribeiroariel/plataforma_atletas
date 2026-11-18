@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BarraAnilhas, LegendaAnilhas } from "./BarraAnilhas";
 import {
   ANILHAS_PADRAO,
   arredondarCarga,
@@ -154,29 +155,45 @@ function CalculadoraRM() {
   );
 }
 
-const CORES_ANILHA: Record<number, string> = {
-  25: "bg-erro text-white",
-  20: "bg-[#1f4fb5] text-white",
-  15: "bg-sinal text-ink",
-  10: "bg-ok text-white",
-  5: "bg-white text-ink ring-1 ring-ink/30",
-  2.5: "bg-ink text-white",
-  1.25: "bg-cinza text-white",
-};
-
 function Anilhas() {
   const [carga, setCarga] = useState("100");
   const [barra, setBarra] = useState(20);
   const kg = lerNumero(carga);
   const m = montarBarra(kg, barra);
+  const porLado = m.porLado.reduce((t, a) => t + a, 0);
+
+  // Botões de +5/−5: o menor salto possível com anilha de 2,5 dos dois lados.
+  function somar(delta: number) {
+    const base = kg > 0 ? m.montada : barra;
+    setCarga(String(Math.max(barra, base + delta)).replace(".", ","));
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <p className="max-w-xl text-sm text-cinza">
-        Digite a carga total que você quer na barra e veja quais anilhas colocar de cada lado.
+        Digite a carga total que você quer na barra e veja quais anilhas colocar de cada lado. Se a carga não fechar
+        exato com as anilhas que existem, a conta sobe até a próxima carga possível.
       </p>
       <div className="flex flex-wrap items-end gap-3">
-        <Campo rotulo="Carga total" valor={carga} onChange={setCarga} sufixo="kg" />
+        <div className="flex min-w-0 flex-1 items-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => somar(-5)}
+            aria-label="Tirar 5 kg"
+            className="font-display h-14 w-12 shrink-0 rounded-xl bg-white text-xl font-extrabold text-cinza ring-1 ring-ash transition-colors hover:text-ink"
+          >
+            −5
+          </button>
+          <Campo rotulo="Carga total" valor={carga} onChange={setCarga} sufixo="kg" />
+          <button
+            type="button"
+            onClick={() => somar(5)}
+            aria-label="Somar 5 kg"
+            className="font-display h-14 w-12 shrink-0 rounded-xl bg-white text-xl font-extrabold text-cinza ring-1 ring-ash transition-colors hover:text-ink"
+          >
+            +5
+          </button>
+        </div>
         <div className="flex flex-col gap-1.5">
           <span className="rotulo text-cinza">Barra</span>
           <div role="radiogroup" aria-label="Peso da barra" className="flex gap-1">
@@ -198,45 +215,43 @@ function Anilhas() {
         </div>
       </div>
 
-      <div className="raias flex flex-col gap-5 rounded-2xl bg-ink p-5 text-white">
-        <div>
-          <p className="rotulo text-tartan">De cada lado</p>
-          <p className="font-display text-4xl leading-tight font-black sm:text-5xl">
-            {kg < barra ? "Menos que a barra" : descreverAnilhas(m.porLado)}
-          </p>
+      <div className="raias flex flex-col gap-5 overflow-hidden rounded-2xl bg-ink p-5 text-white">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="rotulo text-tartan">De cada lado</p>
+            <p className="font-display text-4xl leading-tight font-black sm:text-5xl">
+              {kg <= barra ? "Só a barra" : descreverAnilhas(m.porLado)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="rotulo text-white/45">Na barra</p>
+            <p className="font-display text-4xl leading-none font-black tabular-nums">
+              {num(m.montada, 2)}
+              <span className="text-lg text-white/50"> kg</span>
+            </p>
+          </div>
         </div>
 
-        {/* Desenho da barra: metade esquerda espelhada na direita */}
-        {m.porLado.length > 0 && (
-          <div className="flex items-center justify-center overflow-x-auto py-2" aria-hidden>
-            {[...m.porLado].reverse().map((a, i) => (
-              <span
-                key={`e${i}`}
-                className={`tabular-data mx-px flex w-6 items-center justify-center rounded-sm text-[9px] ${CORES_ANILHA[a] ?? "bg-white text-ink"}`}
-                style={{ height: `${40 + a * 3.2}px` }}
-              >
-                {String(a).replace(".", ",")}
-              </span>
-            ))}
-            <span className="h-2 w-24 bg-white/60 sm:w-40" />
-            {m.porLado.map((a, i) => (
-              <span
-                key={`d${i}`}
-                className={`tabular-data mx-px flex w-6 items-center justify-center rounded-sm text-[9px] ${CORES_ANILHA[a] ?? "bg-white text-ink"}`}
-                style={{ height: `${40 + a * 3.2}px` }}
-              >
-                {String(a).replace(".", ",")}
-              </span>
-            ))}
-          </div>
-        )}
+        <BarraAnilhas
+          porLado={m.porLado}
+          rotulo={`Barra de ${barra} kg com ${descreverAnilhas(m.porLado)} de cada lado, total ${num(m.montada, 2)} kg`}
+        />
+
+        <LegendaAnilhas porLado={m.porLado} />
 
         <p className="tabular-data text-xs text-white/60">
-          Barra {barra} kg + 2 × {num(m.porLado.reduce((s, a) => s + a, 0), 2)} kg = {num(m.montada, 2)} kg
-          {m.sobra > 0 && <span className="text-sinal"> · faltam {num(m.sobra, 2)} kg que não fecham com as anilhas</span>}
+          Barra {barra} kg + 2 × {num(porLado, 2)} kg = {num(m.montada, 2)} kg
         </p>
+        {m.acima > 0 && kg > 0 && (
+          <p className="rounded-xl bg-sinal px-3 py-2 text-sm text-ink">
+            <strong className="font-semibold">Arredondado para cima: +{num(m.acima, 2)} kg.</strong> {num(kg, 2)} kg não
+            fecha com as anilhas disponíveis — a carga mais próxima acima é {num(m.montada, 2)} kg.
+          </p>
+        )}
       </div>
-      <p className="text-xs text-cinza">Considera anilhas de {ANILHAS_PADRAO.map((a) => String(a).replace(".", ",")).join(", ")} kg.</p>
+      <p className="text-xs text-cinza">
+        Considera anilhas de {ANILHAS_PADRAO.map((a) => String(a).replace(".", ",")).join(", ")} kg.
+      </p>
     </div>
   );
 }

@@ -83,7 +83,7 @@ export async function carregarGrupos(
   if (!arquivo) return null;
   try {
     const treino = parseTreino(Buffer.from(await arquivo.arrayBuffer()));
-    if (treino.tipo === "semana") return gruposDaSemana(treino, plano.data_inicio ?? plano.data_criacao);
+    if (treino.tipo === "semana") return gruposDaSemana(treino, plano.data_inicio ?? plano.data_criacao, plano.data_inicio);
     if (treino.tipo === "blocos") return gruposDosBlocos(treino);
     return null;
   } catch {
@@ -154,6 +154,7 @@ export async function resumirAtletas(
         const sessao = grupoAtual?.sessoes.find((s) => s.data === data);
         const rotuloCurto = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][i];
         if (!sessao) return { data, rotuloCurto, titulo: "", estado: "vazio" };
+        if (sessao.antesDoInicio) return { data, rotuloCurto, titulo: "Antes do início", estado: "vazio" };
         if (sessao.descanso || sessao.roteiro.length === 0) return { data, rotuloCurto, titulo: "Descanso", estado: "descanso" };
         const estado: EstadoDia = concluidas.has(sessao.chave)
           ? "feito"

@@ -203,3 +203,23 @@ h1, h2, h3, .font-display {
     clip-path: none;
   }
 }
+
+/* Anilha entrando na barra: desliza pela ponta da manga e assenta. */
+@keyframes anilha-entra {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--de, 60px)) scaleY(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(calc(var(--de, 60px) * -0.06)) scaleY(1);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.anilha {
+  animation: anilha-entra 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}

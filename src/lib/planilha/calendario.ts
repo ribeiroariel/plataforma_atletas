@@ -7,6 +7,8 @@ export type SessaoDoDia = {
   sessionKey: string;
   descanso: boolean;
   resumo: string;
+  // Dia anterior à data de início definida pelo treinador: fora do plano.
+  antesDoInicio: boolean;
 };
 
 function segundaFeiraDaSemana(dataIso: string): Date {
@@ -37,7 +39,17 @@ function resumoDoDia(dia: ModoSemana["semanas"][number]["dias"][number]): string
 // calendário, pra semana 1/2/3... corresponderem a semanas reais do
 // calendário, não a blocos arbitrários de 7 dias a partir de um dia
 // qualquer). As semanas seguintes são semanas de calendário consecutivas.
-export function mapearSessoesParaCalendario(treino: ModoSemana, dataInicio: string): SessaoDoDia[] {
+//
+// apartirDe: a data de início que o treinador definiu (quando definiu). A
+// Semana 1 continua alinhada à segunda-feira daquela semana, porque a
+// planilha é organizada por dia da semana — mas os dias ANTES dessa data
+// ficam marcados como fora do plano (o atleta ainda não tinha começado).
+// Sem data definida (só a de envio), nenhum dia é cortado.
+export function mapearSessoesParaCalendario(
+  treino: ModoSemana,
+  dataInicio: string,
+  apartirDe?: string | null,
+): SessaoDoDia[] {
   const segunda = segundaFeiraDaSemana(dataInicio);
   const resultado: SessaoDoDia[] = [];
 
@@ -52,6 +64,7 @@ export function mapearSessoesParaCalendario(treino: ModoSemana, dataInicio: stri
         sessionKey: dia.chave,
         descanso: dia.descanso,
         resumo: resumoDoDia(dia),
+        antesDoInicio: !!apartirDe && formatarISO(data) < apartirDe,
       });
     });
   });

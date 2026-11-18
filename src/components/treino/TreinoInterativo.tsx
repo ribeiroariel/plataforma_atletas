@@ -203,7 +203,7 @@ export function TreinoInterativo({
               type="button"
               role="tab"
               aria-selected={on}
-              aria-label={`${s.rotulo}${s.descanso ? ", descanso" : feita ? ", concluído" : ""}`}
+              aria-label={`${s.rotulo}${s.antesDoInicio ? ", antes do início" : s.descanso ? ", descanso" : feita ? ", concluído" : ""}`}
               disabled={!podeAbrir}
               onClick={() => irPara(s.chave)}
               className={`relative flex min-h-[68px] min-w-[3.1rem] flex-col items-center justify-center gap-1 rounded-xl transition-all ${
@@ -218,7 +218,7 @@ export function TreinoInterativo({
             >
               <span className="rotulo text-[10px] opacity-80">{s.rotuloCurto}</span>
               <span className="font-display flex h-6 items-center text-xl leading-none font-extrabold tabular-nums">
-                {s.descanso ? <Lua /> : s.data ? diaDoMes(s.data) : s.rotuloCurto.replace(/\D/g, "") || "•"}
+                {s.descanso && !s.antesDoInicio ? <Lua /> : s.data ? diaDoMes(s.data) : s.rotuloCurto.replace(/\D/g, "") || "•"}
               </span>
               <span
                 aria-hidden

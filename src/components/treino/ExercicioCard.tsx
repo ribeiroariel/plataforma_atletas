@@ -25,6 +25,7 @@ import {
   type RegistroExercicio,
 } from "@/lib/treino/registros";
 import { descreverAnilhas, estimar1RM, montarBarra } from "@/lib/treino/rm";
+import { BarraAnilhas } from "@/components/ferramentas/BarraAnilhas";
 import { repsAlvo, sugerirCarga, type EntradaRecente } from "@/lib/treino/sugestao";
 
 type Status = "idle" | "salvando" | "salvo" | "erro";
@@ -774,19 +775,28 @@ export function ExercicioCard({
             {cargasMontaveis.length === 0 ? (
               <p className="text-xs text-cinza">Digite a carga de uma série para ver a montagem.</p>
             ) : (
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-3">
                 {cargasMontaveis.map(({ serie, kg }) => {
                   const m = montarBarra(kg, barra);
                   return (
-                    <li key={serie} className="flex items-baseline gap-2 text-sm">
-                      <span className="rotulo w-6 text-[10px] text-cinza">S{serie}</span>
-                      <span className="tabular-data w-16 text-ink/70">{formatarNumero(kg)} kg</span>
-                      <span className="font-display text-lg leading-none font-bold tabular-nums">
-                        {kg < barra ? "menos que a barra" : descreverAnilhas(m.porLado)}
-                      </span>
-                      {m.sobra > 0 && (
-                        <span className="tabular-data text-[11px] text-erro">faltam {formatarNumero(m.sobra, 2)} kg</span>
-                      )}
+                    <li key={serie} className="flex flex-col gap-1">
+                      <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                        <span className="rotulo w-6 text-[10px] text-cinza">S{serie}</span>
+                        <span className="font-display text-lg leading-none font-bold tabular-nums">
+                          {kg <= barra ? "só a barra" : descreverAnilhas(m.porLado)}
+                        </span>
+                        <span className="tabular-data text-[11px] text-cinza">de cada lado · {formatarNumero(m.montada, 2)} kg</span>
+                        {m.acima > 0 && (
+                          <span className="tabular-data rounded bg-sinal px-1.5 py-0.5 text-[10px] text-ink">
+                            arredondado +{formatarNumero(m.acima, 2)} kg
+                          </span>
+                        )}
+                      </p>
+                      <BarraAnilhas
+                        compacto
+                        porLado={m.porLado}
+                        rotulo={`Série ${serie}: ${descreverAnilhas(m.porLado)} de cada lado`}
+                      />
                     </li>
                   );
                 })}

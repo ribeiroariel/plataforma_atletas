@@ -62,7 +62,7 @@ export default async function TreinoPage({
   const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
   const grupos =
     treino?.tipo === "semana"
-      ? gruposDaSemana(treino, plano.data_inicio ?? plano.data_criacao)
+      ? gruposDaSemana(treino, plano.data_inicio ?? plano.data_criacao, plano.data_inicio)
       : treino?.tipo === "blocos"
         ? gruposDosBlocos(treino)
         : null;
