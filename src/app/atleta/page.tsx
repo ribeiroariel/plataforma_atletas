@@ -9,6 +9,8 @@ import {
   type SessaoTela,
 } from "@/lib/treino/montarSessoes";
 import { formatarNumero } from "@/lib/treino/registros";
+import { buscarProvas, diasAte, textoContagem } from "@/lib/treino/provas";
+import { semanasSeguidas } from "@/lib/treino/sequencia";
 import { escolherPlanoAtivo } from "@/lib/treinador/resumoAtletas";
 import {
   dataCurta,
@@ -77,7 +79,7 @@ export default async function AtletaPage() {
   const hoje = hojeBrasilIso();
   const segunda = segundaDaSemana(hoje);
 
-  const [{ data: planosBrutos }, { data: dadosSemana }] = await Promise.all([
+  const [{ data: planosBrutos }, { data: dadosSemana }, sequencia, { provas }] = await Promise.all([
     supabase
       .from("training_plans")
       .select("id, nome_arquivo, arquivo_url, data_criacao, data_inicio, modo_treino, numero_semanas")
@@ -88,7 +90,11 @@ export default async function AtletaPage() {
       .select("data, tipo, variavel, valor")
       .eq("athlete_id", athlete?.id ?? "")
       .gte("data", segunda),
+    athlete?.id ? semanasSeguidas(supabase, athlete.id, hoje) : Promise.resolve(0),
+    buscarProvas(supabase, athlete?.id ? [athlete.id] : []),
   ]);
+
+  const proximaProva = provas.find((p) => p.data >= hoje);
 
   const planos = (planosBrutos ?? []) as Plano[];
   const ativo = escolherPlanoAtivo(planos, hoje);
@@ -158,6 +164,26 @@ export default async function AtletaPage() {
               <br />
               <span className="text-tartan">{primeiroNome}.</span>
             </h1>
+            {(sequencia > 1 || proximaProva) && (
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {sequencia > 1 && (
+                  <li className="rotulo flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[10px] text-white backdrop-blur">
+                    <span className="font-display text-lg leading-none font-extrabold text-sinal tabular-nums">{sequencia}</span>
+                    semanas seguidas treinando
+                  </li>
+                )}
+                {proximaProva && (
+                  <li>
+                    <Link
+                      href="/atleta/provas"
+                      className="rotulo flex items-center gap-2 rounded-full bg-tartan px-3 py-2 text-[10px] text-white transition-colors hover:bg-tartan-escuro"
+                    >
+                      {textoContagem(diasAte(proximaProva.data, hoje))} · {proximaProva.nome}
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
 
           {/* Treino em destaque */}

@@ -9,6 +9,10 @@ import { haQuanto, resumirAtletas } from "@/lib/treinador/resumoAtletas";
 import { dataCurta, diaDoMes, hojeBrasilIso, tituloDoPlano } from "@/lib/datas";
 import { formatarNumero } from "@/lib/treino/registros";
 import { Anel, Avatar, LegendaEstados } from "@/components/treinador/pecas";
+import { buscarRespostas } from "@/lib/treino/logs";
+import { agruparMarcas, buscarMarcas, buscarProvas, diasAte, formatarMarca, textoContagem } from "@/lib/treino/provas";
+import { Recado } from "@/components/treino/Recado";
+import { BotaoDataInicio } from "@/components/treino/BotaoDataInicio";
 
 const ROTULO_MODO: Record<string, string> = {
   semana: "Mesociclo",
@@ -60,7 +64,18 @@ export default async function AtletaDoTreinadorPage({
   const atleta = atletas[0];
   if (!atleta) notFound();
 
-  const progressoExercicios = await buscarProgressoExercicios(supabase, atleta.id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [progressoExercicios, respostas, { provas }, marcas] = await Promise.all([
+    buscarProgressoExercicios(supabase, atleta.id),
+    buscarRespostas(supabase, recados.map((r) => r.id), user?.id),
+    buscarProvas(supabase, [atleta.id]),
+    buscarMarcas(supabase, [atleta.id]),
+  ]);
+  const proximasProvas = provas.filter((p) => p.data >= hoje);
+  const melhoresMarcas = agruparMarcas(marcas);
 
   const conclusoesPorPlano = new Map<string, number>();
   for (const c of conclusoes ?? []) {
@@ -253,6 +268,16 @@ export default async function AtletaDoTreinadorPage({
                           <Seta />
                         </span>
                       </Link>
+                      {plano.modo_treino === "semana" && (
+                        <div className="mt-2 pl-1">
+                          <BotaoDataInicio
+                            trainingPlanId={plano.id}
+                            athleteId={atleta.id}
+                            dataInicio={plano.data_inicio}
+                            dataCriacao={plano.data_criacao}
+                          />
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -267,26 +292,77 @@ export default async function AtletaDoTreinadorPage({
                 Sem recados ainda.
               </p>
             ) : (
-              <ol className="relative flex flex-col gap-4 border-l-2 border-ash pl-5">
+              <ul className="flex flex-col gap-3">
                 {recados.slice(0, 12).map((r) => {
                   const plano = atleta.planos.find((p) => p.id === r.planoId);
                   return (
-                    <li key={r.id} className="relative">
-                      <span aria-hidden className="absolute top-1.5 -left-[1.6rem] h-2.5 w-2.5 rounded-full bg-tartan ring-4 ring-bone" />
-                      <p className="tabular-data text-[11px] text-cinza">
-                        {dataCurta(r.data)}
-                        {plano ? ` · ${tituloDoPlano(plano.nome_arquivo)}` : ""}
-                      </p>
-                      <p className="mt-1 rounded-xl bg-white px-4 py-3 text-sm leading-relaxed break-words text-ink/85 ring-1 ring-ash">
-                        {r.texto}
-                      </p>
-                    </li>
+                    <Recado
+                      key={r.id}
+                      id={r.id}
+                      texto={r.texto}
+                      data={r.data}
+                      autor={plano ? tituloDoPlano(plano.nome_arquivo) : undefined}
+                      respostas={respostas[r.id] ?? []}
+                      caminho={base}
+                    />
                   );
                 })}
-              </ol>
+              </ul>
             )}
           </div>
         </section>
+
+        {(proximasProvas.length > 0 || melhoresMarcas.length > 0) && (
+          <section className="grid gap-8 lg:grid-cols-2">
+            <div className="flex flex-col gap-3">
+              <h2 className="font-display text-2xl font-extrabold uppercase">Próximas provas</h2>
+              {proximasProvas.length === 0 ? (
+                <p className="rounded-2xl bg-white px-5 py-6 text-center text-sm text-cinza ring-1 ring-ash">
+                  Nenhuma prova marcada.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {proximasProvas.map((p) => (
+                    <li key={p.id} className="flex items-center gap-4 rounded-2xl bg-white p-4 ring-1 ring-ash">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display truncate text-xl leading-tight font-bold uppercase">{p.nome}</p>
+                        <p className="tabular-data text-[11px] text-cinza">
+                          {dataCurta(p.data)}
+                          {p.local ? ` · ${p.local}` : ""}
+                        </p>
+                      </div>
+                      <span className="rotulo shrink-0 rounded-full bg-ink px-3 py-1.5 text-[10px] text-white">
+                        {textoContagem(diasAte(p.data, hoje))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              <h2 className="font-display text-2xl font-extrabold uppercase">Melhores marcas</h2>
+              {melhoresMarcas.length === 0 ? (
+                <p className="rounded-2xl bg-white px-5 py-6 text-center text-sm text-cinza ring-1 ring-ash">
+                  Nenhuma marca registrada.
+                </p>
+              ) : (
+                <ul className="grid grid-cols-2 gap-2">
+                  {melhoresMarcas.map((g) => (
+                    <li key={`${g.prova}-${g.unidade}`} className="flex flex-col rounded-2xl bg-white p-4 ring-1 ring-ash">
+                      <span className="rotulo text-cinza">{g.prova}</span>
+                      <span className="font-display text-3xl leading-none font-black tabular-nums">
+                        {formatarMarca(g.melhor.valor, g.unidade)}
+                      </span>
+                      <span className="tabular-data mt-1 text-[11px] text-cinza">
+                        {dataCurta(g.melhor.data)} {g.melhor.data.slice(0, 4)} · {g.marcas.length} {g.marcas.length === 1 ? "marca" : "marcas"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="flex flex-col gap-4">
           <h2 className="font-display text-2xl font-extrabold uppercase">Evolução</h2>

@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { diaDoMes } from "@/lib/datas";
+import type { FeedbackSessao } from "@/lib/treino/logs";
+import type { RecenteSessao } from "@/lib/treino/historico";
+import { ehSemanaLeve } from "@/lib/treino/sugestao";
 import type { GrupoTela, SessaoTela } from "@/lib/treino/montarSessoes";
 import { chaveRegistro, type RegistroExercicio, type RegistroMapa } from "@/lib/treino/registros";
 import { SessaoLeitura } from "./SessaoLeitura";
@@ -30,6 +33,9 @@ export function TreinoInterativo({
   sessaoInicial,
   hoje,
   somenteLeitura = false,
+  recordes = {},
+  recentes = {},
+  feedbacksIniciais = {},
 }: {
   planoId: string;
   grupos: GrupoTela[];
@@ -39,9 +45,16 @@ export function TreinoInterativo({
   hoje: string;
   // Visão do treinador: mesma navegação, mas só mostra o que o atleta fez.
   somenteLeitura?: boolean;
+  // Maior carga já lançada em cada exercício (chave = nome normalizado).
+  recordes?: Record<string, number>;
+  // Últimos treinos de cada exercício (chave = nome normalizado), pra carga sugerida.
+  recentes?: Record<string, RecenteSessao[]>;
+  // Esforço/bem-estar já informados, por sessão.
+  feedbacksIniciais?: Record<string, FeedbackSessao>;
 }) {
   const [registros, setRegistros] = useState<RegistroMapa>(registrosIniciais);
   const [concluidas, setConcluidas] = useState<Set<string>>(() => new Set(concluidasIniciais));
+  const [feedbacks, setFeedbacks] = useState<Record<string, FeedbackSessao>>(feedbacksIniciais);
 
   const todas = useMemo(() => grupos.flatMap((g) => g.sessoes), [grupos]);
 
@@ -101,6 +114,25 @@ export function TreinoInterativo({
       return novo;
     });
   }
+
+  // Semana leve: pelo nome da semana/sessão na planilha, ou porque o último
+  // treino (de outra sessão) veio com esforço 9–10 ou dor 7+.
+  const ultimoFeedback = Object.entries(feedbacks)
+    .filter(([chave]) => chave !== sessao?.chave)
+    .map(([, f]) => f)
+    .sort((a, b) => b.data.localeCompare(a.data))[0];
+  const leve: { motivo: string } | null = !sessao
+    ? null
+    : ehSemanaLeve(grupo?.rotulo, grupo?.subtitulo, sessao.titulo, sessao.nota)
+      ? { motivo: "Semana leve na planilha" }
+      : ultimoFeedback && (ultimoFeedback.esforco >= 9 || (ultimoFeedback.dor ?? 0) >= 7)
+        ? {
+            motivo:
+              (ultimoFeedback.dor ?? 0) >= 7
+                ? `Você relatou dor ${ultimoFeedback.dor}/10 no último treino`
+                : `Último treino com esforço ${ultimoFeedback.esforco}/10`,
+          }
+        : null;
 
   const treinaveis = todas.filter(treinavel);
   const feitas = treinaveis.filter((s) => concluidas.has(s.chave)).length;
@@ -206,6 +238,7 @@ export function TreinoInterativo({
           anterior={anterior}
           registros={registros}
           concluida={concluidas.has(sessao.chave)}
+          feedback={feedbacks[sessao.chave]}
         />
       ) : (
       <SessaoPainel
@@ -216,7 +249,12 @@ export function TreinoInterativo({
         registros={registros}
         concluida={concluidas.has(sessao.chave)}
         onRegistro={aoRegistrar}
+        recordes={recordes}
+        recentes={recentes}
+        leve={leve}
+        feedback={feedbacks[sessao.chave]}
         onConcluida={(c) => aoConcluir(sessao.chave, c)}
+        onFeedback={(f) => setFeedbacks((atual) => ({ ...atual, [sessao.chave]: f }))}
       />
       )}
     </div>

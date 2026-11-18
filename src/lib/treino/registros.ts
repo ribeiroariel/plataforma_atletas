@@ -2,7 +2,8 @@ import type { Metrica, OpcaoMetrica } from "@/lib/planilha/sugerirMetrica";
 import { numero } from "@/lib/actions/valores";
 
 export type { Metrica };
-export type RegistroExercicio = { metrica: Metrica; valor: number; data: string };
+// reps: repetições daquela série (só existe pra carga, e só se o atleta informou).
+export type RegistroExercicio = { metrica: Metrica; valor: number; data: string; reps?: number };
 // Mapa de registros já salvos: chave = `${sessionKey}:${itemIndex}:${serie}`.
 export type RegistroMapa = Record<string, RegistroExercicio>;
 
@@ -43,10 +44,28 @@ export function volumeDaSessao(mapa: RegistroMapa, sessionKey: string): number {
     .reduce((soma, r) => soma + r.valor, 0);
 }
 
+// Volume "de verdade" (kg × repetições) das séries que têm repetições
+// informadas. Diferente de volumeDaSessao, que só soma as cargas.
+export function tonelagemDaSessao(mapa: RegistroMapa, sessionKey: string): number {
+  return registrosDaSessao(mapa, sessionKey)
+    .filter((r) => r.metrica === "kg" && r.reps)
+    .reduce((soma, r) => soma + r.valor * (r.reps ?? 0), 0);
+}
+
+// Faixa de repetições prescrita, lida do texto da planilha:
+// "4x8-10" -> "8-10", "3x15" -> "15", "5x2 | técnica" -> "2".
+export function detectarReps(detalhe?: string): string {
+  if (!detalhe) return "";
+  const m = detalhe.match(/\d+(?:-\d+)?\s*[x×]\s*(\d+(?:\s*-\s*\d+)?)/);
+  return m ? m[1].replace(/\s/g, "") : "";
+}
+
 export function rotuloOpcao(opcao: OpcaoMetrica): string {
   switch (opcao) {
     case "kg":
       return "Carga";
+    case "corporal":
+      return "Peso corporal";
     case "tempo_min":
       return "Minutos";
     case "tempo_seg":
@@ -62,6 +81,8 @@ export function unidadeOpcao(opcao: OpcaoMetrica): string {
   switch (opcao) {
     case "kg":
       return "kg";
+    case "corporal":
+      return "reps";
     case "tempo_min":
       return "min";
     case "tempo_seg":
@@ -89,7 +110,7 @@ export function formatarNumero(valor: number, casas = 1): string {
 export function textoDoRegistro(registro: RegistroExercicio | undefined, opcao: OpcaoMetrica): string {
   if (!registro) return "";
   if (registro.metrica === "pace") return minutosParaPace(registro.valor);
-  if (opcao === "tempo_seg") return String(Math.round(registro.valor * 60));
+  if (opcao === "tempo_seg") return segundosTexto(registro.valor * 60);
   return String(registro.valor).replace(".", ",");
 }
 
@@ -157,4 +178,21 @@ export function normalizarRotulo(texto: string): string {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+// Tempo de tiro em segundos, com centésimos: 28.4 -> "28,40"; 75.3 -> "1:15,30".
+export function segundosTexto(seg: number): string {
+  const v = Math.round(seg * 100) / 100;
+  if (v < 60) return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const min = Math.floor(v / 60);
+  const resto = v - min * 60;
+  return `${min}:${resto.toLocaleString("pt-BR", { minimumIntegerDigits: 2, minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// Distância de cada tiro, lida do texto: "7x200m" -> 200, "4 x 1,2km" -> 1200.
+export function distanciaDoTiro(texto: string): number | null {
+  const m = texto.match(/\d+\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);
+  if (!m) return null;
+  const n = Number(m[1].replace(",", "."));
+  return m[2].toLowerCase() === "km" ? n * 1000 : n;
 }

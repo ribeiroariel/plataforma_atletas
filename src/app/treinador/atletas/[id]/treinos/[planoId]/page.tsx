@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { carregarGrupos } from "@/lib/treinador/resumoAtletas";
-import type { RegistroExercicio, RegistroMapa } from "@/lib/treino/registros";
+import { buscarFeedbackDoPlano, buscarRegistrosDoPlano, buscarRespostas } from "@/lib/treino/logs";
+import { Recado } from "@/components/treino/Recado";
 import { dataCurta, hojeBrasilIso, tituloDoPlano } from "@/lib/datas";
 import { TreinoInterativo } from "@/components/treino/TreinoInterativo";
 
@@ -30,21 +31,19 @@ export default async function TreinoExecutadoPage({
     .single();
   if (!plano) notFound();
 
-  const [grupos, { data: observacoes }, { data: conclusoes }, { data: logs }] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [grupos, { data: observacoes }, { data: conclusoes }, registros, feedbacks] = await Promise.all([
     carregarGrupos(supabase, plano),
     supabase.from("observations").select("id, texto, data").eq("training_plan_id", plano.id).order("data", { ascending: false }),
     supabase.from("training_completions").select("session_key").eq("training_plan_id", plano.id),
-    supabase.from("exercise_logs").select("session_key, item_index, serie, metrica, valor, data").eq("training_plan_id", plano.id),
+    buscarRegistrosDoPlano(supabase, plano.id),
+    buscarFeedbackDoPlano(supabase, plano.id),
   ]);
-
-  const registros: RegistroMapa = {};
-  for (const l of logs ?? []) {
-    registros[`${l.session_key}:${l.item_index}:${l.serie}`] = {
-      metrica: l.metrica as RegistroExercicio["metrica"],
-      valor: Number(l.valor),
-      data: l.data,
-    };
-  }
+  const respostas = await buscarRespostas(supabase, (observacoes ?? []).map((o) => o.id), user?.id);
+  const caminho = `/treinador/atletas/${id}/treinos/${planoId}`;
 
   return (
     <div className="flex flex-1 flex-col bg-bone">
@@ -78,6 +77,7 @@ export default async function TreinoExecutadoPage({
             sessaoInicial={sessao}
             hoje={hojeBrasilIso()}
             somenteLeitura
+            feedbacksIniciais={feedbacks}
           />
         ) : (
           <p className="rounded-2xl bg-white px-5 py-8 text-center text-sm text-cinza ring-1 ring-ash">
@@ -88,12 +88,17 @@ export default async function TreinoExecutadoPage({
         <section className="flex flex-col gap-3">
           <h2 className="font-display text-2xl font-extrabold uppercase">Recados do atleta</h2>
           {observacoes && observacoes.length > 0 ? (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-3">
               {observacoes.map((obs) => (
-                <li key={obs.id} className="flex gap-3 rounded-xl bg-white px-4 py-3 text-sm text-ink/85 ring-1 ring-ash">
-                  <span className="tabular-data shrink-0 pt-0.5 text-[11px] text-cinza">{dataCurta(obs.data)}</span>
-                  <span className="min-w-0 break-words">{obs.texto}</span>
-                </li>
+                <Recado
+                  key={obs.id}
+                  id={obs.id}
+                  texto={obs.texto}
+                  data={obs.data}
+                  autor={atleta.nome.split(" ")[0]}
+                  respostas={respostas[obs.id] ?? []}
+                  caminho={caminho}
+                />
               ))}
             </ul>
           ) : (

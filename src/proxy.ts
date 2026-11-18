@@ -37,7 +37,6 @@ export async function proxy(request: NextRequest) {
   const rotaProtegida =
     path.startsWith("/atleta") ||
     path.startsWith("/treinador") ||
-    path.startsWith("/feed") ||
     path.startsWith("/feedback");
 
   if (!user) {
@@ -62,7 +61,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Lembra em qual lado a pessoa está, pro feed/feedback mostrarem o menu certo.
+  // Lembra em qual lado a pessoa está, pra página de ideias (feedback) mostrar o menu certo.
   if (path.startsWith("/atleta") || path.startsWith("/treinador")) {
     response.cookies.set("visao", path.startsWith("/atleta") ? "athlete" : "coach", {
       path: "/",

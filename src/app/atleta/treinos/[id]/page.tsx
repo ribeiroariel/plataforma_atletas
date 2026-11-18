@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseTreino } from "@/lib/planilha/parseTreino";
 import { gruposDaSemana, gruposDosBlocos } from "@/lib/treino/montarSessoes";
-import type { RegistroExercicio, RegistroMapa } from "@/lib/treino/registros";
+import { buscarFeedbackDoPlano, buscarRegistrosDoPlano, buscarRespostas } from "@/lib/treino/logs";
+import { buscarHistorico, recentesPorExercicio, recordesPorExercicio } from "@/lib/treino/historico";
+import { Recado } from "@/components/treino/Recado";
 import { dataCurta, hojeBrasilIso, tituloDoPlano } from "@/lib/datas";
 import { TreinoInterativo } from "@/components/treino/TreinoInterativo";
 import { ObservacaoForm } from "@/components/treino/ObservacaoForm";
@@ -35,7 +37,11 @@ export default async function TreinoPage({
     notFound();
   }
 
-  const [{ data: arquivo }, { data: downloadUrl }, { data: observacoes }, { data: conclusoes }, { data: logs }] =
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: arquivo }, { data: downloadUrl }, { data: observacoes }, { data: conclusoes }, registros, feedbacks, historico] =
     await Promise.all([
       supabase.storage.from("training-plans").download(plano.arquivo_url),
       supabase.storage.from("training-plans").createSignedUrl(plano.arquivo_url, 300),
@@ -45,22 +51,13 @@ export default async function TreinoPage({
         .eq("training_plan_id", plano.id)
         .order("data", { ascending: false }),
       supabase.from("training_completions").select("session_key").eq("training_plan_id", plano.id),
-      supabase
-        .from("exercise_logs")
-        .select("session_key, item_index, serie, metrica, valor, data")
-        .eq("training_plan_id", plano.id),
+      buscarRegistrosDoPlano(supabase, plano.id),
+      buscarFeedbackDoPlano(supabase, plano.id),
+      buscarHistorico(supabase, plano.athlete_id),
     ]);
 
   const concluidas = (conclusoes ?? []).map((c) => c.session_key);
-
-  const registros: RegistroMapa = {};
-  for (const l of logs ?? []) {
-    registros[`${l.session_key}:${l.item_index}:${l.serie}`] = {
-      metrica: l.metrica as RegistroExercicio["metrica"],
-      valor: Number(l.valor),
-      data: l.data,
-    };
-  }
+  const respostas = await buscarRespostas(supabase, (observacoes ?? []).map((o) => o.id), user?.id);
 
   const treino = arquivo ? parseTreino(Buffer.from(await arquivo.arrayBuffer())) : null;
   const grupos =
@@ -119,6 +116,9 @@ export default async function TreinoPage({
             concluidasIniciais={concluidas}
             sessaoInicial={sessao}
             hoje={hojeBrasilIso()}
+            recordes={recordesPorExercicio(historico)}
+            recentes={recentesPorExercicio(historico)}
+            feedbacksIniciais={feedbacks}
           />
         ) : treino?.tipo === "generico" ? (
           <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-ash">
@@ -159,12 +159,16 @@ export default async function TreinoPage({
           </div>
 
           {observacoes && observacoes.length > 0 && (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-3">
               {observacoes.map((obs) => (
-                <li key={obs.id} className="flex gap-3 rounded-xl bg-white/60 px-4 py-3 text-sm text-ink/85">
-                  <span className="tabular-data shrink-0 pt-0.5 text-[11px] text-cinza">{dataCurta(obs.data)}</span>
-                  <span className="min-w-0 break-words">{obs.texto}</span>
-                </li>
+                <Recado
+                  key={obs.id}
+                  id={obs.id}
+                  texto={obs.texto}
+                  data={obs.data}
+                  respostas={respostas[obs.id] ?? []}
+                  caminho={`/atleta/treinos/${plano.id}`}
+                />
               ))}
             </ul>
           )}

@@ -14,7 +14,7 @@ export type Visao = {
 
 // Quem é treinador e também treina tem as duas visões. A escolhida fica num
 // cookie (gravado pelo proxy ao entrar em /atleta ou /treinador) pra que
-// páginas comuns, como o feed, mostrem o menu do lado em que a pessoa estava.
+// páginas comuns, como a de ideias (feedback), mostrem o menu do lado em que a pessoa estava.
 export async function resolverVisao(supabase: SupabaseClient, userId: string | undefined): Promise<Visao> {
   if (!userId) return { papel: null, visao: "athlete", duplo: false };
 

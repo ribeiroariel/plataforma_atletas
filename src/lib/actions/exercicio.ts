@@ -8,7 +8,8 @@ import { paceParaMinutos, numero } from "./valores";
 
 type Resultado = { ok: true } | { erro: string };
 
-type Metrica = "kg" | "distancia" | "tempo" | "pace";
+// corporal: exercício com o peso do corpo — o valor é o número de repetições.
+type Metrica = "kg" | "distancia" | "tempo" | "pace" | "corporal";
 
 // Mapeamento métrica -> (tipo, variavel, unidade, agregação) para consolidar em
 // training_data. A combinação satisfaz o check `combinacao_valida` do schema.
@@ -16,8 +17,9 @@ type Metrica = "kg" | "distancia" | "tempo" | "pace";
 //   distancia -> corrida  / distancia    / km     (SOMA do dia)
 //   tempo     -> cardio   / tempo        / min    (SOMA do dia)
 //   pace      -> corrida  / pace         / min/km (MÉDIA simples do dia)
+// Peso corporal não entra no volume de carga da Evolução (não tem kg).
 const MAPA: Record<
-  Metrica,
+  Exclude<Metrica, "corporal">,
   { tipo: string; variavel: string; unidade: string; agregacao: "soma" | "media" }
 > = {
   kg: { tipo: "academia", variavel: "volume_carga", unidade: "kg", agregacao: "soma" },
@@ -27,7 +29,7 @@ const MAPA: Record<
 };
 
 function ehMetrica(v: string): v is Metrica {
-  return v === "kg" || v === "distancia" || v === "tempo" || v === "pace";
+  return v === "kg" || v === "distancia" || v === "tempo" || v === "pace" || v === "corporal";
 }
 
 // CONSOLIDAÇÃO NA EVOLUÇÃO — importante:
@@ -49,6 +51,7 @@ async function recalcularAgregado(
   data: string,
   metrica: Metrica,
 ): Promise<void> {
+  if (metrica === "corporal") return;
   const { tipo, variavel, unidade, agregacao } = MAPA[metrica];
 
   const { data: logs, error } = await supabase
@@ -97,6 +100,8 @@ export async function registrarExercicio(
   metrica: string,
   valorBruto: string,
   data: string,
+  // Repetições daquela série (só carga). undefined = não mexe; null = apaga.
+  reps?: number | null,
 ): Promise<Resultado> {
   if (!trainingPlanId) return { erro: "Treino inválido." };
   if (!sessionKey || sessionKey.length > 60) return { erro: "Sessão inválida." };
@@ -105,11 +110,18 @@ export async function registrarExercicio(
   if (!ehMetrica(metrica)) return { erro: "Escolha uma métrica válida." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { erro: "Informe uma data válida." };
 
+  if (reps !== undefined && reps !== null && (!Number.isInteger(reps) || reps < 1 || reps > 200)) {
+    return { erro: "As repetições precisam ser um número entre 1 e 200." };
+  }
+
   const hoje = new Date().toISOString().slice(0, 10);
   if (data > hoje) return { erro: "A data não pode ser no futuro." };
 
   const valor = metrica === "pace" ? paceParaMinutos(valorBruto) : numero(valorBruto);
   if (valor === null || valor <= 0) return { erro: "O valor precisa ser um número positivo." };
+  if (metrica === "corporal" && (!Number.isInteger(valor) || valor > 500)) {
+    return { erro: "Informe as repetições como número inteiro." };
+  }
 
   const supabase = await createClient();
   const {
@@ -132,23 +144,34 @@ export async function registrarExercicio(
     .maybeSingle();
 
   const agora = new Date().toISOString();
-  const { error } = await supabase.from("exercise_logs").upsert(
-    {
-      athlete_id: athleteId,
-      training_plan_id: trainingPlanId,
-      session_key: sessionKey,
-      item_index: itemIndex,
-      serie,
-      metrica,
-      valor,
-      data,
-      updated_at: agora,
-    },
-    { onConflict: "training_plan_id,session_key,item_index,serie" },
-  );
+  const linha: Record<string, string | number | null> = {
+    athlete_id: athleteId,
+    training_plan_id: trainingPlanId,
+    session_key: sessionKey,
+    item_index: itemIndex,
+    serie,
+    metrica,
+    valor,
+    data,
+    updated_at: agora,
+  };
+  const conflito = { onConflict: "training_plan_id,session_key,item_index,serie" };
+  const comReps = metrica === "kg" && reps !== undefined;
+
+  let { error } = await supabase.from("exercise_logs").upsert(comReps ? { ...linha, reps } : linha, conflito);
+  // A coluna "reps" só existe depois de rodar a migração de 16/11/2026. Se
+  // ainda não rodou, grava a carga mesmo assim, sem as repetições.
+  if (error && comReps && /reps/i.test(error.message ?? "")) {
+    ({ error } = await supabase.from("exercise_logs").upsert(linha, conflito));
+  }
 
   if (error) {
     console.error("[exercicio] registrarExercicio upsert", error);
+    // 23514 = regra de valores do banco. Pra "corporal" quer dizer que a
+    // migração de 16/11/2026 ainda não rodou.
+    if (metrica === "corporal" && error.code === "23514") {
+      return { erro: "O registro de peso corporal ainda não está ligado. Avise o treinador." };
+    }
     return { erro: "Não deu para salvar o registro. Tente de novo." };
   }
 
