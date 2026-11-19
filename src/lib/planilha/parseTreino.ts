@@ -16,10 +16,16 @@ export type BlocoTexto =
   | { tipo: "item-numerado"; texto: string; detalhe: string[] }
   // colado: linha escrita como "-Exercício" (traço grudado na palavra).
   | { tipo: "item-lista"; texto: string; colado?: boolean }
-  | { tipo: "total"; texto: string };
+  | { tipo: "total"; texto: string }
+  // Divisor de turno: "1º período", "2º período – Rodagem"... Separa duas
+  // sessões feitas no mesmo dia (ex.: musculação de manhã, rodagem à tarde).
+  // Não é registrável, então não mexe nos índices dos exercícios.
+  | { tipo: "periodo"; texto: string };
 
 export type DiaSemana = { chave: string; dia: string; blocos: BlocoTexto[]; descanso: boolean };
-export type SemanaTreino = { rotulo: string; dias: DiaSemana[] };
+// observacoes: texto da coluna "Observações" da linha da semana (recado da
+// semana inteira, ex.: "3 sessões de alongamento"), fora dos dias.
+export type SemanaTreino = { rotulo: string; dias: DiaSemana[]; observacoes?: string };
 export type ModoSemana = {
   tipo: "semana";
   titulo: string;
@@ -165,6 +171,9 @@ function normalizar(texto: string) {
     .toLowerCase();
 }
 
+// "1º período", "2o periodo – Rodagem", "Segundo período:", "Período 2".
+const RE_PERIODO = /^(?:(?:\d+\s*[ºª°o]?|primeiro|segundo|terceiro)\s+per[ií]odo|per[ií]odo\s+\d+)\b/i;
+
 // Linha tipo "Cardio: Caminhada em esteira – 30min | 6-7km/h | ..." colada
 // logo após uma lista numerada de musculação (sem numeração própria). Sem
 // esse reconhecimento, ela cai no fallback de "não bate com nada" e vira
@@ -198,7 +207,9 @@ export function parseCelula(textoOriginal: string): BlocoTexto[] {
     const subtitulo = linha.length < 40 && /:$/.test(linha) && !/\d/.test(linha);
     const atividadeExtra = RE_ATIVIDADE_EXTRA.test(linha);
 
-    if (total) {
+    if (RE_PERIODO.test(linha)) {
+      blocos.push({ tipo: "periodo", texto: linha.replace(/:$/, "").trim() });
+    } else if (total) {
       blocos.push({ tipo: "total", texto: linha });
     } else if (itemNumerado) {
       blocos.push({ tipo: "item-numerado", texto: itemNumerado[2], detalhe: [] });
@@ -269,8 +280,15 @@ function parseGradeDeSemana(linhas: string[][], indiceCabecalho: number): ModoSe
     }
 
     const dias: DiaSemana[] = [];
+    let observacoes: string | undefined;
     for (let col = 1; col < cabecalho.length; col++) {
       const conteudo = String(linha[col] ?? "").trim();
+      // Coluna "Observações" não é dia: vira recado da semana. O índice da
+      // coluna continua contando, então as chaves dos dias não mudam.
+      if (normalizar(String(cabecalho[col] ?? "")).startsWith("observ")) {
+        if (conteudo) observacoes = conteudo;
+        continue;
+      }
       const descanso = /^(descanso|folga|off|livre)\.?$/i.test(conteudo);
       dias.push({
         chave: `s${indiceSemana}-d${col}`,
@@ -279,7 +297,7 @@ function parseGradeDeSemana(linhas: string[][], indiceCabecalho: number): ModoSe
         descanso,
       });
     }
-    semanas.push({ rotulo, dias });
+    semanas.push({ rotulo, dias, observacoes });
     indiceSemana++;
   }
 

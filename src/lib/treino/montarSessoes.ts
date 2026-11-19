@@ -24,7 +24,8 @@ export type SessaoTela = {
   parametros?: string;
 };
 
-export type GrupoTela = { rotulo: string; subtitulo?: string; sessoes: SessaoTela[] };
+// observacoes: recado da semana (coluna "Observações" da planilha).
+export type GrupoTela = { rotulo: string; subtitulo?: string; observacoes?: string; sessoes: SessaoTela[] };
 
 // As planilhas costumam abrir o dia com uma linha tipo
 // "INFERIOR – QUADRÍCEPS  |  ~75-85 min": a parte antes da barra vira o
@@ -63,6 +64,7 @@ export function gruposDaSemana(treino: ModoSemana, dataInicio: string, apartirDe
     return {
       rotulo: (curto ? junto : linhas[0]) || `Semana ${i + 1}`,
       subtitulo: curto ? undefined : linhas.slice(1).join(" · ") || undefined,
+      observacoes: semana.observacoes,
       sessoes: semana.dias.map((dia) => {
         // Célula vazia na planilha = dia sem treino, igual a descanso.
         const antesDoInicio = !!mapeadas.get(dia.chave)?.antesDoInicio;
