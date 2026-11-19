@@ -190,6 +190,13 @@ export function TreinoInterativo({
 
       {grupo.subtitulo && <p className="-mt-2 text-sm text-cinza">{grupo.subtitulo}</p>}
 
+      {grupo.observacoes && (
+        <div className="rounded-2xl bg-sinal/30 px-4 py-3 text-sm text-ink">
+          <p className="rotulo mb-1 text-ink/60">Observações da semana</p>
+          <p className="leading-relaxed whitespace-pre-line">{grupo.observacoes}</p>
+        </div>
+      )}
+
       {/* Dias / blocos */}
       <div className="sem-barra -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist" aria-label="Sessões">
         {grupo.sessoes.map((s) => {

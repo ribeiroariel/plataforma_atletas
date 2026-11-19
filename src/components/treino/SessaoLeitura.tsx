@@ -159,6 +159,13 @@ export function SessaoLeitura({
         {sessao.roteiro.map((item, i) => {
           if (item.tipo === "texto") {
             const bloco = item.bloco;
+            if (bloco.tipo === "periodo") {
+              return (
+                <li key={i} className="mt-4 rounded-xl bg-ink px-4 py-2.5 first:mt-0">
+                  <span className="rotulo text-tartan">{bloco.texto}</span>
+                </li>
+              );
+            }
             if (bloco.tipo === "subtitulo") {
               return (
                 <li key={i} className="mt-3 flex items-center gap-3 first:mt-0">
