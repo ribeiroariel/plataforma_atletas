@@ -223,3 +223,42 @@ h1, h2, h3, .font-display {
 .anilha {
   animation: anilha-entra 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
+
+/* Ícones do menu: a parte "cheia" acende suave no item ativo (e de leve no
+   hover), dando peso ao ícone sem trocar o desenho. */
+.icone {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.icone-cheio {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+a:hover .icone-cheio {
+  opacity: 0.12;
+}
+[aria-current="page"] .icone-cheio {
+  opacity: 0.22;
+}
+a:hover > span > .icone,
+[aria-current="page"] .icone {
+  transform: scale(1.06);
+}
+
+/* Ícones do menu: a parte "cheia" acende suave no item ativo (e de leve no
+   hover), dando peso ao ícone sem trocar o desenho. */
+.icone {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.icone-cheio {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+a:hover .icone-cheio {
+  opacity: 0.12;
+}
+[aria-current="page"] .icone-cheio {
+  opacity: 0.22;
+}
+[aria-current="page"] .icone {
+  transform: scale(1.06);
+}

@@ -139,11 +139,16 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-[var(--radius-badge)] px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-tartan focus-visible:outline-none ${
+                className={`group flex items-center gap-3 rounded-[var(--radius-badge)] px-2 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-tartan focus-visible:outline-none ${
                   on ? "bg-white text-ink" : "text-white/60 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <span className={on ? "text-tartan" : ""} aria-hidden>
+                <span
+                  aria-hidden
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    on ? "bg-tartan text-white shadow-md shadow-tartan/30" : "bg-white/[0.06] text-white/75 group-hover:bg-white/10 group-hover:text-white"
+                  }`}
+                >
                   {item.icon}
                 </span>
                 {item.label}
