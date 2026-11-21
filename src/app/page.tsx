@@ -6,7 +6,8 @@ import { FotoRotativa } from "@/components/ui/FotoRotativa";
 import { Revelar } from "@/components/ui/Revelar";
 import { DemoRegistro } from "@/components/landing/DemoRegistro";
 
-const PALAVRAS = ["Força", "Velocidade", "Pista", "Academia", "Resistência", "Constância"];
+// O que dá pra fazer no site, numa linha discreta logo abaixo da abertura.
+const RECURSOS = ["Planilha da semana", "Cargas, repetições e tiros", "Evolução e recordes"];
 
 const PASSOS = [
   {
@@ -88,15 +89,14 @@ export default function Home() {
         </header>
 
         <div className="relative z-10 mt-auto flex flex-col gap-6 px-5 pb-12 sm:px-10 sm:pb-16">
-          <p className="rotulo animate-subir text-sinal">Plataforma de treinos · atletismo e força</p>
+          <p className="rotulo animate-subir text-sinal">Plataforma de treino</p>
           <h1 className="font-display animate-subir max-w-5xl text-[clamp(3.25rem,11vw,9rem)] leading-[0.9] font-black uppercase [animation-delay:80ms]">
             Treino feito
             <br />é treino <span className="text-tartan">anotado.</span>
           </h1>
           <div className="animate-subir flex flex-col gap-6 [animation-delay:200ms] sm:flex-row sm:items-end sm:justify-between">
             <p className="max-w-md text-base leading-relaxed text-white/75 sm:text-lg">
-              O lugar onde os atletas do Ariel abrem a planilha da semana, registram cada carga e enxergam a própria
-              evolução.
+              Um lugar para abrir a planilha da semana, registrar cada treino e acompanhar a própria evolução.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -119,16 +119,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Faixa */}
-      <div className="overflow-hidden border-y border-white/10 bg-tartan py-3" aria-hidden>
-        <div className="esteira flex w-max gap-8 whitespace-nowrap">
-          {[...PALAVRAS, ...PALAVRAS, ...PALAVRAS, ...PALAVRAS].map((p, i) => (
-            <span key={i} className="font-display flex items-center gap-8 text-2xl font-extrabold uppercase">
-              {p}
-              <span className="h-2 w-2 rounded-full bg-ink" />
-            </span>
+      {/* O que tem no site: linha fixa, sem movimento */}
+      <div className="border-y border-white/10 bg-ink-2 px-5 sm:px-10">
+        <ul className="mx-auto flex w-full max-w-6xl flex-col divide-y divide-white/10 sm:flex-row sm:divide-x sm:divide-y-0">
+          {RECURSOS.map((r, i) => (
+            <li key={r} className="flex flex-1 items-center gap-3 py-4 sm:justify-center sm:px-6">
+              <span className="tabular-data text-xs text-tartan">{String(i + 1).padStart(2, "0")}</span>
+              <span className="text-sm text-white/75">{r}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
       {/* Registro — amostra interativa */}
@@ -157,11 +157,7 @@ export default function Home() {
       <section className="bg-bone px-5 py-20 text-ink sm:px-10 sm:py-28">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-12">
           <Revelar>
-            <h2 className="font-display max-w-3xl text-5xl leading-[0.92] font-black uppercase sm:text-7xl">
-              Da planilha
-              <br />
-              ao resultado.
-            </h2>
+            <h2 className="font-display text-4xl leading-none font-black uppercase sm:text-5xl">Como funciona</h2>
           </Revelar>
           <ol className="grid gap-px overflow-hidden rounded-3xl bg-ash ring-1 ring-ash md:grid-cols-3">
             {PASSOS.map((p, i) => (
@@ -195,11 +191,12 @@ export default function Home() {
             </Revelar>
           ))}
           <Revelar className="col-span-2 flex flex-col justify-between gap-8 rounded-2xl bg-ink-2 p-7 sm:p-10 md:col-span-7">
-            <p className="font-display text-4xl leading-[0.95] font-black uppercase sm:text-6xl">
-              O treino é seu.
-              <br />
-              <span className="text-sinal">O registro também.</span>
-            </p>
+            <div>
+              <p className="font-display text-3xl leading-tight font-black uppercase sm:text-4xl">Recebeu uma planilha?</p>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-white/65">
+                Crie sua conta para ver seus treinos e começar a registrar. Se já tem conta, é só entrar.
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-4">
               <Link
                 href="/cadastro"
@@ -217,7 +214,7 @@ export default function Home() {
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-6 sm:px-10">
         <Marca />
-        <p className="rotulo text-white/35">Plataforma em desenvolvimento · feita para quem treina</p>
+        <p className="rotulo text-white/35">Plataforma em desenvolvimento</p>
       </footer>
     </div>
   );

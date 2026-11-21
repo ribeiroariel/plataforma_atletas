@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { FOTOS, type FotoSite } from "@/lib/fotos";
 import { FotoFoco } from "./FotoFoco";
 
+// Só fotos dos atletas.
 export const FOTOS_PISTA: FotoSite[] = [
-  FOTOS.chegada,
-  FOTOS.futebolConducao,
   FOTOS.saltoCorrida,
-  FOTOS.futebolDisputa,
+  FOTOS.futebolConducao,
   FOTOS.revezamento,
-  FOTOS.prova,
+  FOTOS.futebolDisputa,
+  FOTOS.saltoAreia,
 ];
 
 // Fundo de fotos que vão se revezando com fade e um zoom lento. A primeira
