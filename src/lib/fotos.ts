@@ -50,7 +50,7 @@ export const FOTOS = {
     src: "/fotos/revezamento.webp",
     largura: 1145,
     altura: 840,
-    foco: [0.36, 0.56],
+    foco: [0.36, 0.4],
     alt: "Atleta correndo com o bastão numa prova de revezamento",
   },
   futebolDisputa: {

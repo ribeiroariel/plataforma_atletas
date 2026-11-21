@@ -10,7 +10,7 @@ export function AuthMoldura({ children }: { children: React.ReactNode }) {
     <div className="flex flex-1 flex-col bg-bone lg:flex-row">
       <div className="relative isolate flex h-44 shrink-0 flex-col justify-between overflow-hidden bg-ink p-5 text-white sm:h-56 lg:h-auto lg:min-h-screen lg:w-[46%] lg:p-10">
         <FotoFoco
-          foto={FOTOS.corrida}
+          foto={FOTOS.revezamento}
           alt=""
           priority
           sizes="(min-width: 1024px) 46vw, 100vw"
